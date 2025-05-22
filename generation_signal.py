@@ -10,7 +10,6 @@ from pycbc.inference.models import GaussianNoise
 from pycbc.noise.gaussian import frequency_noise_from_psd
 from pycbc.waveform.generator import (FDomainDetFrameGenerator,FDomainCBCGenerator)
 from pycbc.psd import EinsteinTelescopeP1600143
-from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 
 
 
@@ -72,7 +71,7 @@ class Signal_GW:
         model = GaussianNoise(['mass1', 'mass2', 'tc','polarization','ra','dec','inclination','spin1z','spin2z','distance'], signal, low_frequency_cutoff,
                                 psds=psds, static_params=self.stat)
 
-        return model
+        return model, signal
     
     def signal_noise(self,signal):
         psd = EinsteinTelescopeP1600143(self.N, 1./self.seglen, self.fmin)
@@ -88,4 +87,4 @@ class Signal_GW:
         model = GaussianNoise(['mass1', 'mass2', 'tc','polarization','ra','dec','inclination','spin1z','spin2z','distance'], signal, low_frequency_cutoff,
                                 psds=psds, static_params=self.stat)
 
-        return model
+        return model, signal
