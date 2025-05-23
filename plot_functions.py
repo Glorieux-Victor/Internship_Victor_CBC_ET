@@ -13,6 +13,12 @@ from pycbc.waveform.generator import (FDomainDetFrameGenerator,FDomainCBCGenerat
 from pycbc.psd import EinsteinTelescopeP1600143
 from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 
+
+#====================================================
+#fonctions : plot_dual_local_minimisation, plot_mnimisation, plot_correlation, plot_correlation_2_params, plot_correlation_chirp_q
+#====================================================
+
+
 def plot_dual_local_minimisation(params_dataFrame,x_data,y_data,x_label,y_label,save_fig):
 
     x_list=params_dataFrame[x_data]

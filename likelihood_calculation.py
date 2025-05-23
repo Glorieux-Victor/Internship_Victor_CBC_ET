@@ -16,6 +16,12 @@ from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1
 from scipy.optimize import basinhopping,differential_evolution
 from scipy.optimize import minimize
 
+
+#====================================================
+#fonctions : minimisation_globale, minimisation_locale, print_results, likelihood_visualisation
+#====================================================
+
+
 params_dataFrame_glob = pd.DataFrame(data={'mloglik': [],'tc': [], 'mass1': [],
                                         'mass2': [], 'distance': [], 'ra' : [], 'dec' : [],
                                         'polarization': [], 'inclination': [], 'spin1z' : [], 'spin2z' : [],
@@ -198,9 +204,13 @@ def likelihood_visualisation(model,params_dataFrame_glob,para_reels,save_fig):
     def plot_lik(ax,data_x,label_x,true_param,param_min,param_max,echantill,params_dataFrame):
 
         model.update(tc=true_param[0], mass1 = true_param[1], mass2 = true_param[2], distance = true_param[3],
-                    ra = true_param[4], dec = true_param[5], polarization = true_param[6], declination = true_param[7],
+                    ra = true_param[4], dec = true_param[5], polarization = true_param[6], inclination = true_param[7],
                     spin1z = true_param[8], spin2z = true_param[9])
-
+        
+        dico = {'tc' : true_param[0], 'mass1' : true_param[1], 'mass2' : true_param[2], 'distance' : true_param[3],
+                'ra' : true_param[4], 'dec' : true_param[5], 'polarization' : true_param[6], 'inclination' : true_param[7],
+                'spin1z' : true_param[8], 'spin2z' : true_param[9]}
+        
         mchirp_true = mchirp_from_mass1_mass2(true_param[1],true_param[2])
         q_true = q_from_mass1_mass2(true_param[1],true_param[2])
 
@@ -212,17 +222,20 @@ def likelihood_visualisation(model,params_dataFrame_glob,para_reels,save_fig):
                 mass1 = mass1_from_mchirp_q(mchirp=x_,q=q_true)
                 mass2 = mass2_from_mchirp_q(mchirp=x_,q=q_true)
                 params = {'mass1' : mass1, 'mass2' : mass2}
-                model.update(**params)
+                dico.update(params)
+                model.update(**dico)
                 y_grid[i]=-model.loglr
             elif data_x == 'mass2' :
                 mass1 = mass1_from_mchirp_q(mchirp=mchirp_true,q=x_)
                 mass2 = mass2_from_mchirp_q(mchirp=mchirp_true,q=x_)
                 params = {'mass1' : mass1, 'mass2' : mass2}
-                model.update(**params)
+                dico.update(params)
+                model.update(**dico)
                 y_grid[i]=-model.loglr
             else :
                 params = {data_x : x_} #Les paramètres que l'on souhaite modifier sur le modèle de notre GW
-                model.update(**params) #Modification du modèle 
+                dico.update(params)
+                model.update(**dico) #Modification du modèle 
                 y_grid[i]=-model.loglr
         ax.plot(x_grid,y_grid,label = r"-log($\mathcal{L}$)")
         if data_x == 'mass1' :

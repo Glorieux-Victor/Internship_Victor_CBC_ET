@@ -13,7 +13,6 @@ from pycbc.psd import EinsteinTelescopeP1600143
 
 
 
-
 para_reels = np.array([3.1, 38.6, 29.3, 1000, 1.37, -1.26,2.76,0,0,0])
 
 class Signal_GW:
@@ -37,6 +36,7 @@ class Signal_GW:
         cbc_params_stat['f_lower'] =  fmin
 
         # Génération du signal
+        self.tc = cbc_params['tc']
         self.params = cbc_params
         self.seglen = seglen
         self.stat = cbc_params_stat
@@ -88,3 +88,12 @@ class Signal_GW:
                                 psds=psds, static_params=self.stat)
 
         return model, signal
+
+
+def generate_time_series_from_frequency_series(frequency_series, tc):
+
+    time_series = frequency_series.to_timeseries()
+    t_end = time_series.get_sample_times()[-1]
+    time_series = time_series.cyclic_time_shift(t_end - tc)
+
+    return time_series
