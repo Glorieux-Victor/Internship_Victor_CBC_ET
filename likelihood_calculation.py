@@ -16,7 +16,6 @@ from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1
 from scipy.optimize import basinhopping,differential_evolution
 from scipy.optimize import minimize
 
-
 #====================================================
 #fonctions : minimisation_globale, minimisation_locale, print_results, likelihood_visualisation
 #====================================================
@@ -30,19 +29,26 @@ params_dataFrame_glob = pd.DataFrame(data={'mloglik': [],'tc': [], 'mass1': [],
 p=0
 k=0
 
-def minimisation_globale(model,minimisation,method,tol,nb_iter,log_noise_likelihood_from_SNR,normalisation,save_data):
+def minimisation_globale(model,minimisation,method,tol,nb_iter,stepsize,log_noise_likelihood_from_SNR,normalisation,save_data,file_name):
 
     print('Expected log likelihood noise: {:.2f}'.format(log_noise_likelihood_from_SNR))
 
     global params_dataFrame_glob, k, p
+
+    params_dataFrame_glob = pd.DataFrame(data={'mloglik': [],'tc': [], 'mass1': [],
+                                        'mass2': [], 'distance': [], 'ra' : [], 'dec' : [],
+                                        'polarization': [], 'inclination': [], 'spin1z' : [], 'spin2z' : [],
+                                        'chirp' : [], 'q' : []})
+    k=0
+    p=0
 
     def likelihood_calculation_glob(params_):
 
         params=params_
 
         if normalisation :
-            param_min = np.array([0,     1, 0.2,    200,   0,  -4,   0,   0,   -1,   -1])
-            step = np.array([   1.5,    10,   1.5,     5,   3,   3,   3,   2,  0.1,    0.1])
+            param_min = np.array([0,     1, 0.2,    200,   0,  -np.pi,   0,   0,   -1,   -1])
+            step = np.array([   1.5,    5,   0.2,     5,   3,   3,   3,   2,  0.1,    0.1])
             for i in range(len(params_)):
                 params[i] = param_min[i] + params_[i]*(step[i]/0.1)
 
@@ -55,13 +61,14 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,log_noise_likelih
                     polarization=params[6],inclination=params[7],spin1z=params[8],spin2z=params[9])
         mloglik = - model.loglr
 
-        # add = pd.DataFrame(data={'mloglik': mloglik, 'tc': params[0], 'mass1': mass1,
-        #                          'mass2': mass2, 'distance': params[3], 'ra' : params[4],
-        #                          'dec' : params[5], 'polarization': params[6], 'inclination': params[7],
-        #                          'spin1z' : params[8], 'spin2z' : params[9], 'chirp' : params[1],
-        #                         'q' : params[2]},index=[k])
-        # params_dataFrame_glob = pd.concat([params_dataFrame_glob,add])
-        # k +=1
+        if save_data :
+            add = pd.DataFrame(data={'mloglik': mloglik, 'tc': params[0], 'mass1': mass1,
+                                  'mass2': mass2, 'distance': params[3], 'ra' : params[4],
+                                  'dec' : params[5], 'polarization': params[6], 'inclination': params[7],
+                                  'spin1z' : params[8], 'spin2z' : params[9], 'chirp' : params[1],
+                                 'q' : params[2]},index=[k])
+            params_dataFrame_glob = pd.concat([params_dataFrame_glob,add])
+            k +=1
 
         print (mloglik, end="\r")
         #time.sleep(0.1)
@@ -74,15 +81,15 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,log_noise_likelih
     mchirp = mchirp_from_mass1_mass2(mass1_init,mass2_init)
     q = q_from_mass1_mass2(mass1_init,mass2_init)
     #true params : (tc=3.1, chirp_mass, q, dist = 1000, ra = 1.37, dec = -1.26, pola=2.76, incl = 0, s1z=0, s2z=0)
-    initial_params = [2, mchirp, q,   5000,       4,      0,    4,       2,    0,       0]
+    initial_params = [2, mchirp, q,   5000,       0,      0,    0,       0,    0,       0]
 
     #Bounds ==========================
     if normalisation:
-        param_min = np.array([0,     1, 0.2,    200,   0,  -4,   0,   0,   -1,   -1])
-        param_max = np.array([10,  500,  20, 10000, 7.5,   4, 7.5,   4,    1,    1])
+        param_min = np.array([0,     1,   0.2,   200,     0,  -np.pi,    0,   0,   -1,   -1])
+        param_max = np.array([10,  50,     5, 10000,   2*np.pi,   np.pi,  2*np.pi,   np.pi,    1,    1])
         borne_min_norm = np.zeros(len(param_min))
         borne_max_norm = borne_min_norm
-        step = np.array([   1.5,    10,   1.5,     5,   3,   3,   3,   2,  0.1,    0.1])
+        step = np.array([   1.5,    5,   0.2,     5,     3,   3,    3,   2,  0.1,    0.1])
         bornes_inf_sup_scaled=()
         for i in range(len(param_min)):
             delta = param_max[i] - param_min[i]
@@ -90,7 +97,9 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,log_noise_likelih
             bornes_inf_sup_scaled += ((0,points*0.1),) #bornes à donner.
         bounds=bornes_inf_sup_scaled
     else :
-        bounds=((0,10),(1,500),(0.1,20),(10,10000),(0,7.5),(-4,4),(0,7.5),(0,4),(-1,1),(-1,1))
+        pi2 = np.pi/2
+        dpi = 2*np.pi
+        bounds=((0,10),(1,50),(0.1,5),(10,10000),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-1,1),(-1,1))
 
     #Nelder-Mead,  Powell, L-BFGS-B
     # 'tol' : 10e-2
@@ -104,24 +113,85 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,log_noise_likelih
 
 
     if minimisation == 'basinhopping':
-        result_glob = basinhopping(likelihood_calculation_glob, x0=initial_params, minimizer_kwargs=minimizer_kwargs,niter = nb_iter,stepsize=0.1,callback=print_fun)
+        result_glob = basinhopping(likelihood_calculation_glob, x0=initial_params, minimizer_kwargs=minimizer_kwargs,niter = nb_iter,stepsize=stepsize,callback=print_fun)
 
     elif minimisation == 'differential_evolution':
         result_glob = differential_evolution(likelihood_calculation_glob,bounds,x0=initial_params)
 
-
+    #params_glob_dataFrame_file_chirp.txt
     if save_data :
-        params_dataFrame_glob.to_csv("data_files/params_glob_dataFrame_file_chirp.txt",index=False)
+        params_dataFrame_glob.to_csv("data_files/"+ file_name ,index=False)
 
     return result_glob
 
 
 
+#===============================================================================================================================================
+#===============================================================================================================================================
+#===============================================================================================================================================
+
+params_dataFrame_glob_unique = pd.DataFrame(data={'mloglik': [],'param': []})
+
+
+def minimisation_unique_param_glob(param,true_value,model,method,tol,nb_iter,stepsize,log_noise_likelihood_from_SNR,save_data,file_name):
+
+
+    global params_dataFrame_glob_unique, k, p
+
+    params_dataFrame_glob_unique = pd.DataFrame(data={'mloglik': [],'param': []})
+    k=0
+    p=0
+    
+    def likelihood_calculation_glob(params):
+
+        mass1 = mass1_from_mchirp_q(mchirp=params[1],q=params[2])
+        mass2 = mass2_from_mchirp_q(mchirp=params[1],q=params[2])
+
+        global params_dataFrame_glob, k
+        model.update(tc=params[0],mass1=mass1,mass2=mass2,distance=params[3],ra=params[4],dec=params[5],
+                    polarization=params[6],inclination=params[7],spin1z=params[8],spin2z=params[9])
+        mloglik = - model.loglr
+
+        if save_data :
+            add = pd.DataFrame(data={'mloglik': mloglik, 'param': params[0]})
+            params_dataFrame_glob_unique = pd.concat([params_dataFrame_glob_unique,add])
+            k +=1
+
+        print (mloglik, end="\r")
+
+    mass1_init = 30
+    mass2_init = 30
+    mchirp = mchirp_from_mass1_mass2(mass1_init,mass2_init)
+    q = q_from_mass1_mass2(mass1_init,mass2_init)
+
+    initial_params = [2, mchirp, q,   5000,       0,      0,    0,       0,    0,       0]
+
+
+    pi2 = np.pi/2
+    dpi = 2*np.pi
+    bounds=((0,10),(1,50),(0.1,5),(10,10000),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-1,1),(-1,1))
+
+    #Nelder-Mead,  Powell, L-BFGS-B
+    minimizer_kwargs={ "method": method,"bounds":bounds,'tol':tol}
+    def print_fun(x, f, accepted):
+            global p
+            p+=1
+            print("at minimum %.4f accepted %d" % (f, int(accepted)),end="\r")
+            if int(accepted) == 1:
+                print("min : {}, it : {}".format(f,p))
+
+
+    if save_data :
+        params_dataFrame_glob_unique.to_csv("data_files/"+ file_name ,index=False)
+
+    result = basinhopping(likelihood_calculation_glob, x0=initial_params, minimizer_kwargs=minimizer_kwargs,niter = nb_iter,stepsize=stepsize,callback=print_fun)
 
 
 
 
-
+#===============================================================================================================================================
+#===============================================================================================================================================
+#===============================================================================================================================================
 
 
 
@@ -155,7 +225,7 @@ def minimisation_locale(model,initial_params,tol,log_noise_likelihood_from_SNR,f
                                     'spin1z' : params[8], 'spin2z' : params[9], 'chirp' : params[1],
                                     'q' : params[2]},index=[k])
             params_dataFrame = pd.concat([params_dataFrame,add])
-        k +=1
+            k +=1
         if follow_lik :
             print (mloglik, end="\r")
 
@@ -173,6 +243,10 @@ def minimisation_locale(model,initial_params,tol,log_noise_likelihood_from_SNR,f
 
     return result, initial_params
 
+
+#===============================================================================================================================================
+#===============================================================================================================================================
+#===============================================================================================================================================
 
 
 def print_results(result,para_reels,initial_params):
@@ -193,6 +267,9 @@ def print_results(result,para_reels,initial_params):
         para_reels[1], para_reels[2], para_reels[3], para_reels[4], para_reels[5],para_reels[6],para_reels[7],para_reels[8],para_reels[9]))
 
 
+#===============================================================================================================================================
+#===============================================================================================================================================
+#===============================================================================================================================================
 
 
 def likelihood_visualisation(model,params_dataFrame_glob,para_reels,save_fig):
