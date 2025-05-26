@@ -56,10 +56,39 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,stepsize,log_nois
         mass1 = mass1_from_mchirp_q(mchirp=params[1],q=params[2])
         mass2 = mass2_from_mchirp_q(mchirp=params[1],q=params[2])
 
+        cbc_params = {
+            # Paramètres intrinsèques à la source
+            'mass1': mass1,
+            'mass2': mass2,
+            'spin1x': 0., 'spin2x': 0.,  'spin1y': 0., 'spin2y': 0.,  'spin1z': params[8], 'spin2z': params[9],
+            'eccentricity': 0,
+            # Paramètres extrinsèques
+            'ra': params[4], 'dec': params[5], 'distance': params[3],
+            'polarization': params[6], 'inclination': params[7],
+            'tc': params[0] , 'coa_phase': 0}
+
         global params_dataFrame_glob, k
         model.update(tc=params[0],mass1=mass1,mass2=mass2,distance=params[3],ra=params[4],dec=params[5],
                     polarization=params[6],inclination=params[7],spin1z=params[8],spin2z=params[9])
-        mloglik = - model.loglr
+
+
+        if not hasattr(model, "_loglr_cache"):
+            model._loglr_cache = {}
+
+        def rounded_key(params, decimals=2):
+            return tuple((k, round(v, decimals)) for k, v in sorted(params.items()))
+
+        key = rounded_key(cbc_params)
+
+        if key not in model._loglr_cache:
+            try:
+                model.loglr
+            except Exception as e:
+                print(f"Erreur dans loglr : {e}")
+                return 1e100
+            model._loglr_cache[key] = model.loglr
+
+        mloglik = - model._loglr_cache[key]
 
         if save_data :
             add = pd.DataFrame(data={'mloglik': mloglik, 'tc': params[0], 'mass1': mass1,
@@ -70,8 +99,7 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,stepsize,log_nois
             params_dataFrame_glob = pd.concat([params_dataFrame_glob,add])
             k +=1
 
-        print (mloglik, end="\r")
-        #time.sleep(0.1)
+        #print (mloglik,end="\r")
 
         return mloglik
 
@@ -107,7 +135,7 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,stepsize,log_nois
     def print_fun(x, f, accepted):
             global p
             p+=1
-            print("at minimum %.4f accepted %d" % (f, int(accepted)),end="\r")
+            #print("at minimum %.4f accepted %d" % (f, int(accepted)),end="\r")
             if int(accepted) == 1:
                 print("min : {}, it : {}".format(f,p))
 
