@@ -163,6 +163,8 @@ params_dataFrame_glob_unique = pd.DataFrame(data={'mloglik': [],'param': []})
 
 def minimisation_unique_param_glob(param,true_value,model,method,tol,nb_iter,stepsize,log_noise_likelihood_from_SNR,save_data,file_name):
 
+    #liste des paramètres, utile pour remonter aux indices.
+    list_params = ['tc','chrip','q','distance','ra','dec','polarization','inclination','spin1z','spin2z']
 
     global params_dataFrame_glob_unique, k, p
 
@@ -175,10 +177,39 @@ def minimisation_unique_param_glob(param,true_value,model,method,tol,nb_iter,ste
         mass1 = mass1_from_mchirp_q(mchirp=params[1],q=params[2])
         mass2 = mass2_from_mchirp_q(mchirp=params[1],q=params[2])
 
-        global params_dataFrame_glob, k
+        global params_dataFrame_glob_unique, k
+
+        cbc_params_unique = {
+            # Paramètres intrinsèques à la source
+            'mass1': mass1,
+            'mass2': mass2,
+            'spin1x': 0., 'spin2x': 0.,  'spin1y': 0., 'spin2y': 0.,  'spin1z': params[8], 'spin2z': params[9],
+            'eccentricity': 0,
+            # Paramètres extrinsèques
+            'ra': params[4], 'dec': params[5], 'distance': params[3],
+            'polarization': params[6], 'inclination': params[7],
+            'tc': params[0] , 'coa_phase': 0}
+
         model.update(tc=params[0],mass1=mass1,mass2=mass2,distance=params[3],ra=params[4],dec=params[5],
                     polarization=params[6],inclination=params[7],spin1z=params[8],spin2z=params[9])
-        mloglik = - model.loglr
+        
+        if not hasattr(model, "_loglr_cache"):
+            model._loglr_cache = {}
+
+        def rounded_key(params, decimals=3):
+            return tuple((k, round(v, decimals)) for k, v in sorted(params.items()))
+
+        key = rounded_key(cbc_params_unique)
+
+        if key not in model._loglr_cache:
+            try:
+                model.loglr
+            except Exception as e:
+                print(f"Erreur dans loglr : {e}")
+                return 1e100
+            model._loglr_cache[key] = model.loglr
+
+        mloglik = - model._loglr_cache[key]
 
         if save_data :
             add = pd.DataFrame(data={'mloglik': mloglik, 'param': params[0]})
@@ -186,6 +217,8 @@ def minimisation_unique_param_glob(param,true_value,model,method,tol,nb_iter,ste
             k +=1
 
         print (mloglik, end="\r")
+
+        return mloglik
 
     mass1_init = 30
     mass2_init = 30
@@ -195,13 +228,15 @@ def minimisation_unique_param_glob(param,true_value,model,method,tol,nb_iter,ste
     initial_params = [2, mchirp, q,   5000,       0,      0,    0,       0,    0,       0]
 
 
+    #On récupère les bonne contraintes pour le paramètres considéré.
     pi2 = np.pi/2
     dpi = 2*np.pi
-    bounds=((0,10),(1,50),(0.1,5),(10,10000),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-1,1),(-1,1))
+    bounds_list=((0,10),(1,50),(0.1,5),(10,10000),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-1,1),(-1,1))
+    bound = bounds_list(list_params.index(param))
 
-    #Nelder-Mead,  Powell, L-BFGS-B
-    minimizer_kwargs={ "method": method,"bounds":bounds,'tol':tol}
-    def print_fun(x, f, accepted):
+    #Liste des méthodes utiles : Nelder-Mead,  Powell, L-BFGS-B
+    minimizer_kwargs={ "method": method,"bounds":bound,'tol':tol}
+    def print_fun(x, f, accepted): #fonction qui renvoie un message à chaque fin d'itération (de minimisation locale)
             global p
             p+=1
             print("at minimum %.4f accepted %d" % (f, int(accepted)),end="\r")
@@ -213,6 +248,8 @@ def minimisation_unique_param_glob(param,true_value,model,method,tol,nb_iter,ste
         params_dataFrame_glob_unique.to_csv("data_files/"+ file_name ,index=False)
 
     result = basinhopping(likelihood_calculation_glob, x0=initial_params, minimizer_kwargs=minimizer_kwargs,niter = nb_iter,stepsize=stepsize,callback=print_fun)
+
+    return result
 
 
 
@@ -300,7 +337,7 @@ def print_results(result,para_reels,initial_params):
 #===============================================================================================================================================
 
 
-def likelihood_visualisation(model,params_dataFrame_glob,para_reels,save_fig):
+def likelihood_visualisation(model,params_dataFrame_glob,para_reels,fig_name,save_fig):
     fig_lik, axs = plt.subplots(nrows=3, ncols=4, figsize = (40,20))
 
     true_param = para_reels
@@ -357,9 +394,9 @@ def likelihood_visualisation(model,params_dataFrame_glob,para_reels,save_fig):
     axs_list = [axs[0,0],axs[0,1],axs[0,2],axs[0,3],axs[1,0],axs[1,1],axs[1,2],axs[1,3],axs[2,0],axs[2,1]]
     label_x = [r'$t_c$', r'$m_1$', r'$m_2$',  r'distance',   r'ra',      r'dec',     r'pola',        r'incl',       r's_{1z}',  r's_{2z}']
     data_x = ['tc',   'mass1',    'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z']
-    param_min = [0,     1, 0.2,    200,   0,  -4,   0,   0,   -1,   -1]
-    param_max = [10,  500,  20, 10000, 7.5,   4, 7.5,   4,    1,    1]
-    echantill = [0.2,   10, 0.4,    200, 0.1, 0.2, 0.1, 0.1, 0.02, 0.02]
+    param_min = [0,     1,   0.2,     200,        0,   -np.pi,        0,       0,    -1,   -1]
+    param_max = [10,  50,      5,   10000,  2*np.pi,    np.pi,  2*np.pi,   np.pi,     1,    1]
+    echantill = [0.1,   0.2, 0.05,     50,     0.05,     0.05,     0.05,    0.05,  0.01, 0.01]
 
     q=0
     for i in range(len(label_x)):
@@ -370,4 +407,4 @@ def likelihood_visualisation(model,params_dataFrame_glob,para_reels,save_fig):
     fig_lik.tight_layout()
 
     if save_fig :
-        plt.savefig("variation_params_minimisation")
+        plt.savefig(fig_name)
