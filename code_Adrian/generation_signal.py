@@ -10,18 +10,37 @@ from pycbc.inference.models import GaussianNoise
 from pycbc.noise.gaussian import frequency_noise_from_psd
 from pycbc.waveform.generator import (FDomainDetFrameGenerator,FDomainCBCGenerator)
 from pycbc.psd import EinsteinTelescopeP1600143
+from pycbc.conversions import tau0_from_mass1_mass2
 
 
 para_reels = np.array([3.1, 38.6, 29.3, 1000, 1.37, -1.26,2.76,0,0,0])
 
 class Signal_GW:
+    """Generates a CBC signal from a dictionary of parameters"""
 
+    # Static params
     cbc_params_stat = {
             'spin1x': 0., 'spin2x': 0.,  'spin1y': 0., 'spin2y': 0.,
             'eccentricity': 0, 'coa_phase': 0}
 
     def __init__(self,seglen,sample_rate,fmin,cbc_params,approximant):
-
+        """
+        Instanciate a Signal_GW object.
+        
+        Parameters
+        ----------
+        seglen : float
+            Segment duration [s].
+        sample_rate : int
+            Sampling frequency [Hz].
+        fmin : float
+            Minimal frequency [Hz].
+        cbc_params : dict
+            CBC parameters.
+        approximant : float
+            Waveform approximant to use.
+        """
+        
         N = int(seglen * sample_rate / 2 + 1) # Number of samples in the frequency series
 
         cbc_params_stat = {
@@ -40,7 +59,7 @@ class Signal_GW:
         self.seglen = seglen
         self.stat = cbc_params_stat
         self.fmin = fmin
-        self.N = N
+        self.N = N        
     
     def signal_ET(self):
         generator = FDomainDetFrameGenerator(
