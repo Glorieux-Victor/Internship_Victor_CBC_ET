@@ -17,7 +17,7 @@ from scipy.optimize import basinhopping,differential_evolution
 from scipy.optimize import minimize
 
 #====================================================
-#fonctions : minimisation_globale, minimisation_locale, print_results, likelihood_visualisation
+#fonctions : minimisation_globale, minimisation_unique_param_glob (pas finie), minimisation_locale, print_results, likelihood_visualisation
 #====================================================
 
 
@@ -29,7 +29,7 @@ params_dataFrame_glob = pd.DataFrame(data={'mloglik': [],'tc': [], 'mass1': [],
 p=0
 k=0
 
-def minimisation_globale(model,minimisation,method,tol,nb_iter,stepsize,log_noise_likelihood_from_SNR,normalisation,save_data,file_name):
+def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,stepsize,log_noise_likelihood_from_SNR,normalisation,save_data,file_name):
 
     print('Expected log likelihood noise: {:.2f}'.format(log_noise_likelihood_from_SNR))
 
@@ -99,7 +99,7 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,stepsize,log_nois
             params_dataFrame_glob = pd.concat([params_dataFrame_glob,add])
             k +=1
 
-        #print (mloglik,end="\r")
+        print (mloglik,end="\r")
 
         return mloglik
 
@@ -109,7 +109,7 @@ def minimisation_globale(model,minimisation,method,tol,nb_iter,stepsize,log_nois
     mchirp = mchirp_from_mass1_mass2(mass1_init,mass2_init)
     q = q_from_mass1_mass2(mass1_init,mass2_init)
     #true params : (tc=3.1, chirp_mass, q, dist = 1000, ra = 1.37, dec = -1.26, pola=2.76, incl = 0, s1z=0, s2z=0)
-    initial_params = [2, mchirp, q,   5000,       0,      0,    0,       0,    0,       0]
+    #initial_params = [2, mchirp, q,   5000,       0,      0,    0,       0,    0,       0]
 
     #Bounds ==========================
     if normalisation:

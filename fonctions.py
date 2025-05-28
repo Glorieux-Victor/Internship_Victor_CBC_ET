@@ -6,6 +6,26 @@ from gwpy.signal import filter_design
 import pandas as pd
 import numpy as np
 
+def puissance_seglen(seglen):
+    k=seglen
+    q = 0
+    while k > 1 :
+        k=k//2
+        q +=1
+    if seglen == 2**q :
+        return 2**q
+    else :
+        ecart_inf = seglen - 2**q
+        ecart_sup = 2**(q+1) - seglen
+        if ecart_inf > ecart_sup :
+            return 2**(q+1)
+        else :
+            return 2**q
+        
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
 def extraction_data(path,number,final,channel,dossier_save,save):
     def name_data(number):
         return  "E-E1_STRAIN_DATA-" + number + "-2048.gwf"
@@ -19,6 +39,9 @@ def extraction_data(path,number,final,channel,dossier_save,save):
         plt.savefig(dossier_save+"OG_2")
     return data
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 def PSD_func(data,dossier_save,save):
     PSD = data.psd(20,5)
@@ -30,6 +53,9 @@ def PSD_func(data,dossier_save,save):
     if save :
         plt.savefig(dossier_save+"OG_2_PSD")
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 def ASD_func(data,dossier_save,save):
     ASD = data.asd(4)
@@ -39,6 +65,9 @@ def ASD_func(data,dossier_save,save):
     if save :
         plt.savefig(dossier_save+"OG_2_ASDbis")
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 def spectro_func(path,number,final,channel,t0_spectro,tf_spectro,dossier_save,save):
     data = extraction_data(path,number,final,channel,dossier_save,save=False)
@@ -56,6 +85,9 @@ def spectro_func(path,number,final,channel,t0_spectro,tf_spectro,dossier_save,sa
     plt.close(fig='all')
     return spectro
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 def multi_spectro_func_chat(path, number, final, channel, t0_spectro, tf_spectro, dossier_save):
     fig, axs = plt.subplots(ncols=2, nrows=2, figsize=[20, 18])
@@ -85,6 +117,9 @@ def multi_spectro_func_chat(path, number, final, channel, t0_spectro, tf_spectro
     plt.savefig(f"{dossier_save}spectrograms_bestSNR.png")
     plt.close(fig)
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 def multi_spectro_func(path,number,final,channel,t0_spectro,tf_spectro,dossier_save):
     for i,name in enumerate(number) :
@@ -100,6 +135,9 @@ def multi_spectro_func(path,number,final,channel,t0_spectro,tf_spectro,dossier_s
         ax.colorbar(cmap='viridis', label='Normalized energy')
         plt.savefig(dossier_save+name+"_spectre")
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 def filtre_func(path,number,final,channel,dossier_save,save):
     data = extraction_data(path,number,final,channel,dossier_save,save=False)
@@ -127,6 +165,9 @@ def filtre_func(path,number,final,channel,dossier_save,save):
 
     return hdata, hfilt
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 def signal_GW(hfilt,number,dossier_save,t_start,t_stop,save):
     plot = hfilt.plot(color='gwpy:ligo-hanford')
@@ -139,6 +180,9 @@ def signal_GW(hfilt,number,dossier_save,t_start,t_stop,save):
         plt.savefig(dossier_save+"OG_2_filtre")
     return plot
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 #==============================================================================
 #Permet de déterminer, à partir du fichier de données "list_mdc1.txt", le nom de l'observations (temps dans les données présentes sur le serveur IJCLab) associé
@@ -208,6 +252,9 @@ def extraction_temps(indexes,type,print_):
     tc_list = [float(tc_list[i]) for i in range(len(tc_list))]
     return init, final, t0_list, tc_list, interval
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 #========================================================================
 #Permet de plot une double figure contenant le signal en temporel et le spectrogram, aux bonnes échelles de temps récupérées sur le fichier "list_mdc1.txt".

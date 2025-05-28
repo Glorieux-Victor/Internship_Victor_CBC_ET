@@ -16,6 +16,10 @@ from pycbc.waveform.generator import (FDomainDetFrameGenerator,FDomainCBCGenerat
 from pycbc.psd import EinsteinTelescopeP1600143
 from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 
+#====================================================
+#fonctions : extraction_data, get_refs, filtre_func, find_ref
+#====================================================
+
 #======================================================================================================
 #======================================================================================================
 #======================================================================================================
