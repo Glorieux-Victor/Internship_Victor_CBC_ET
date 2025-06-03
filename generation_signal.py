@@ -167,4 +167,4 @@ def generation_signal_GW(cbc_params,sample_rate,fmin,noise,print_snr):
         print('Expected minus loglr: {:.2f}'.format(log_noise_likelihood_from_SNR))
         print('loglr :',model.loglr)
 
-    return model, log_noise_likelihood_from_SNR
+    return model, log_noise_likelihood_from_SNR, signal_
