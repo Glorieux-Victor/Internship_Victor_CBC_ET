@@ -1,24 +1,29 @@
+"""
+This module contains a redefinition of the class GaussianNoise to work on the ET MDC data.
+"""
+
+import sys
 from pycbc.inference.models import GaussianNoise
 from scipy.optimize import differential_evolution
+from scipy.interpolate import interp1d
 from IPython.display import clear_output
 import numpy as np
 from pycbc.conversions import mchirp_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 from generate_data import generate_frequency_domain_signal
+from gwpy.timeseries import TimeSeries
+
+all_cbc_params = ['mass1', 'mass2', 'spin1z', 'spin2z', 'distance', 'polarization', 'inclination', 'tc', 'coa_phase', 'ra', 'dec',\
+                 'spin1x', 'spin2x', 'spin1y', 'spin1z', 'approximant', 'f_lower']
 
 default_static_params = {
-              # Paramètres intrinsèques à la source
-              'spin1x': 0., 'spin2x': 0.,  'spin1y': 0., 'spin2y': 0., 
-              'eccentricity': 0 }
+              'spin1x': 0., 'spin2x': 0.,  'spin1y': 0., 'spin2y': 0.,}
 
 default_variable_params = ['mass1', 'mass2', 'spin1z', 'spin2z', 'distance', 'polarization', 'inclination', 'tc', 'coa_phase', 'ra', 'dec']
 
-default_chirp_mass_bound = (1, 100)
-default_q_bound = (1, 100)
 default_spinz_bound = (-0.97, 0.97)
 default_angle_bound = (0, 2 * np.pi)
 default_iota_bound = (0, np.pi)
 default_dec_bound = (-np.pi / 2, np.pi /2)
-default_distance_bound = (100, 100000)
 
 class MDCGaussianNoise(GaussianNoise):
     """
@@ -44,13 +49,16 @@ class MDCGaussianNoise(GaussianNoise):
         Log likelihood ratio computed for the true injected CBC signal parameters, if they are provided.
     max_loglr : float
         Log likelihood ratio obtained after maximization.
+    injection_network_snr : float
+        Network SNR of the injected signal, if it is provided.
+        
     Methods
     -------
     compute_optimal_likelihood : compute likelihood for the correct values of the injected parameters (assuming they are known)
     maximize : maximize the likelihood using scipy.optimize.differential_evolution
     reconstruct_signal : reconstruct the signal in the frequency domain from the maximized parameters.
     """
-    def __init__(self, data, psd, approximant='IMRPhenomD', fmin=5, static_params=default_static_params, variable_params=default_variable_params, injection_params=None, **kwargs):
+    def __init__(self, data, psd, approximant='IMRPhenomXPHM', fmin=5, static_params=default_static_params, variable_params=default_variable_params, injection_params=None, injection_network_snr=None, **kwargs):
         """
         Parameters
         ----------
@@ -68,6 +76,8 @@ class MDCGaussianNoise(GaussianNoise):
             List of variable parameters to use. Default is default_variable_params.
         injection_params : dict, optional.
             Dictionary containing true injection parameters.
+        injection_network_snr : float, optional.
+            Network SNR of the injected signal (if known).
         """
 
         static_params['approximant'] = approximant
@@ -81,10 +91,25 @@ class MDCGaussianNoise(GaussianNoise):
         self.static_params = static_params
         self.maximized_params = None
         self.data = data
-        self.ifos = self.data.keys()
+        self.ifos = list(self.data.keys())
+        self.epoch = data[self.ifos[0]].epoch
+        if injection_params != None:
+            self.compute_optimal_likelihoods()
+        self.injection_network_snr = injection_network_snr
+        self.check_params()
+    
+    def check_params(self):
+        """
+        Check that all needed parameters are well defined.
+        """
+        for parameter in all_cbc_params:
+            if parameter not in self.variable_params and parameter not in list(self.static_params.keys()):
+                print('Error: ' + parameter + ' is not defined either as a variable or a static parameter')
+                sys.exit(1)
+            if parameter == 'approximant' or parameter == 'f_lower':
+                if parameter not in list(self.static_params.keys()):
+                    print('Error: ' + parameter + ' must be defined as a static parameter')
 
-        self.compute_optimal_likelihoods()
-        
     def compute_optimal_likelihoods(self):
         """
         Compute likelihood for the true parameters of the signal present in the data.
@@ -109,55 +134,40 @@ class MDCGaussianNoise(GaussianNoise):
 
         return self.optimal_loglr, self.optimal_loglikelihood
 
-    def maximize(self, max_iterations=10000, tol=1e-6, bounds_method='default', initial_guess_method='random', custom_bounds=None, custom_initial_guess=None):
+    def maximize(self, bounds, max_iterations=1000, tol=1e-6):
         """
-        Maximize the likelihood using scipy.optimize.differential_evolution over 11 parameters:
-        Mc, q, s1z, s2z, ra, dec, dist, iota, psi, tc, phi_c.
+        Maximize the likelihood using scipy.optimize.differential_evolution over the variable parameters defined.
+
+        Parameters
+        ----------
+        bounds : list of tuples
+            Bounds for each parameter, e.g bounds=[(mc_min, mc_max), (q_min, q_max)]. Parameters should be in the same order as the 'variable_params' list.
+        max_iterations : int, optional.
+            Maximal number of iterations for the 'differential_evolution' algorithm. Default is 1000.
+        tol : float, optional.
+            Tolerance for the 'differential_evolution' algorithm. Default is 1e-6.
         """
 
         # Define the objective function to minimize (negative of log-likelihood ratio)
         def negative_loglr(x):
         
             # Unwrap parameters
-            mc, q, s1z, s2z, ra, dec, dist, iota, psi, tc, phi_c = x
-        
+            params = dict(zip(self.variable_params, x))
+            
             # Convert chirp mass and mass ratio into mass1 and mass2
-            m1 = mass1_from_mchirp_q(mc, q)
-            m2 = mass2_from_mchirp_q(mc, q)
-        
+            if 'mass1' in self.variable_params:
+                m1 = mass1_from_mchirp_q(params['mass1'], params['mass2'])
+                m2 = mass2_from_mchirp_q(params['mass1'], params['mass2'])
+                params['mass1'] = m1
+                params['mass2'] = m2
             # Update model with the given vector of parameters
-            self.update(mass1=m1, mass2=m2, spin1z=s1z, spin2z=s2z, ra=ra, dec=dec, distance=dist, inclination=iota, polarization=psi, tc=tc, coa_phase=phi_c)
+            updated_params = {**params, **self.static_params}
+            #print(updated_params)
+            self.update(**updated_params)
         
             return -self.loglr  # Negate for maximization
         
-        # Mc, q, chi_eff, ra, dec, dist, iota, psi, tc, phi_c
 
-        # Manage bounds 
-        if bounds_method == 'default':
-            bounds = [default_chirp_mass_bound, default_q_bound, default_spinz_bound, default_spinz_bound, default_angle_bound, default_dec_bound, \
-                      default_distance_bound, default_iota_bound, default_angle_bound, tc_bound, default_angle_bound]
-
-        elif bounds_method == 'custom':
-            if custom_bounds is not None:
-                bounds = custom_bounds
-            else:
-                print('Error: please define a custom bounds list')
-        elif bounds_method == 'sensible':
-            if self.injection_params is not None:
-                bounds = get_sensible_bounds(self.injection_params)
-            else:
-                print('Error: cannot use sensible bounds if injection params are not set')
-
-        # Manage initial guess
-        if initial_guess_method == 'random':
-            initial_guess = None # No initial guess given, will be selected randomly by the function within the bounds
-        elif initial_guess_method == 'custom':
-            if custom_initial_guess is not None:
-                initial_guess = custom_initial_guess
-            else:
-                print('Error: please define a custom initial guess')
-        else:
-            initial_guess = None
         # Run the optimization
         iteration_counter = {"count": 0}
         
@@ -167,77 +177,82 @@ class MDCGaussianNoise(GaussianNoise):
             current_value = negative_loglr(x)
             print(f"Iteration {iteration_counter['count']}: negative_loglr = {current_value}")
 
-        print('Start maximization')
-        
-        result = differential_evolution(negative_loglr, bounds, x0=initial_guess, callback=status_callback, maxiter=max_iterations, tol=tol)
-        
+        print('Start maximization over the following parameters:')
+        print(self.variable_params)
+        result = differential_evolution(negative_loglr, bounds, callback=status_callback, maxiter=max_iterations, tol=tol, polish=False)
+        print('Maximization complete')
         # Extract optimized parameters
-        mc_opt, q_opt, s1z_opt, s2z_opt, ra_opt, dec_opt, dist_opt, iota_opt, psi_opt, tc_opt, phic_opt = result.x
+        maximized_params = dict(zip(self.variable_params, result.x))
+        if 'mass1' in self.variable_params:
+            m1 = mass1_from_mchirp_q(maximized_params['mass1'], maximized_params['mass2'])
+            m2 = mass2_from_mchirp_q(maximized_params['mass1'], maximized_params['mass2'])
+            maximized_params['mass1'] = m1
+            maximized_params['mass2'] = m2
 
-        self.maximized_params = {'mass1' : mass1_from_mchirp_q(mc_opt, q_opt),
-                            'mass2' : mass2_from_mchirp_q(mc_opt, q_opt),
-                            'spin1z' : s1z_opt,
-                            'spin2z' : s2z_opt,
-                            'ra' : ra_opt,
-                            'dec' : dec_opt,
-                            'distance' : dist_opt,
-                            'inclination' : iota_opt,
-                            'polarization' : psi_opt,
-                            'tc' : tc_opt, 
-                            'coa_phase' : phic_opt}
+        self.maximized_params = maximized_params
         self.maximized_params = {**self.maximized_params, **self.static_params}
         
         max_loglr = -result.fun  # Undo the negation
         self.maxloglr = max_loglr
-        print(f"Optimized chirp mass: {mc_opt}")
-        print(f"Optimized mass ratio: {q_opt}")
         
         print(f"Maximum log-likelihood ratio: {max_loglr}")
 
         return result
 
     def reconstruct_signal(self):
+        """
+        Reconstruct the signal in each detector from the set of maximized parameters.
 
+        Returns
+        -------
+        reconstructed_signal_fdomain : dict
+            Dictionary containing a FrequencySeries for each detector.
+        reconstructed_signal_tdomain : dict
+            Dictionary containing a TimeSeries for each detector.
+        """
         if self.maximized_params is not None:
-            reconstructed_signal = generate_frequency_domain_signal(self.maximized_params)
+            reconstructed_signal_fdomain = generate_frequency_domain_signal(self.maximized_params, epoch=self.epoch)
         else:
             print('Error: run maximize() method before trying to reconstruct the signal.')
-        return reconstructed_signal
 
-## Utility functions
+        reconstructed_signal_tdomain = {}
+        for ifo in self.ifos:
+            reconstructed_signal_tdomain[ifo] = reconstructed_signal_fdomain[ifo].to_timeseries() # Just an inverse FFT
+        
+        return reconstructed_signal_fdomain, reconstructed_signal_tdomain
 
-def get_sensible_bounds(injection_params, tol=0.1):
+def subtract_signal(original_data, reconstructed_signal_tdomain):
     """
-    Generate parameter bounds for likelihood maximization with a relative tolerance radius of the true signal parameters.
-    Example: if the true chirp mass is 30 and tol=0.1, the bound in chirp mass will be (0.27, 0.3).
+    Subtract the reconstructed signal from the original data in the time domain.
 
     Parameters
     ----------
-    injection_params : dict
-        Dictionary containing the parameters of the injected signal.
-    tol : float
-        Tolerance radius to create the bounds.
+    original_data : dict
+        Dictionary containing the original TimeSeries for each detector.
+    reconstructed_signal_tdomain : dict
+        Dictionary containing the reconstructed TimeSeries for each detector.
 
     Returns
     -------
-    bounds : list
-        List of tuples containing bounds to be given to differential_evolution().
+    subtracted_signal_tdomain : dict 
+        Dictionary containing the residual TimeSeries for each detector.
     """
-    true_Mc = mchirp_from_mass1_mass2(injection_params['mass1'], injection_params['mass2'])
-    true_q = injection_params['mass1'] / injection_params['mass2']
-    
-    chirp_mass_bound = (true_Mc * (1 - tol), true_Mc * (1 + tol))
-    q_bound = (true_q * (1 - tol), true_q * (1 + tol))
+    subtracted_signal_tdomain = {}
+    ifos = list(original_data.keys())
+    for ifo in ifos:
+        tsd = original_data[ifo]
 
-    s1z_bound = (injection_params['spin1z'] * (1 - tol), injection_params['spin1z'] * (1 + tol))
-    s2z_bound = (injection_params['spin2z'] * (1 - tol), injection_params['spin2z'] * (1 + tol))
-    distance_bound =  (injection_params['distance'] * (1 - tol), injection_params['distance'] * (1 + tol))
-    tc_bound =  (injection_params['tc'] * (1 - tol), injection_params['tc'] * (1 + tol))
+        # Interpolate reconstructed signal with time stamps of the original data
+        t1 = original_data[ifo].get_sample_times().data
+        t2 = reconstructed_signal_tdomain[ifo].get_sample_times().data
+        
+        h1 = original_data[ifo].data
+        h2 = reconstructed_signal_tdomain[ifo].data
+        
+        h_of_t = interp1d(t2, h2, bounds_error=False, fill_value=0)
+        h_new = h_of_t(t1)
 
-    bounds = [chirp_mass_bound, q_bound, s1z_bound, s2z_bound, default_angle_bound, default_dec_bound, \
-              distance_bound, default_iota_bound, default_angle_bound, tc_bound, default_angle_bound]
-    
-    return bounds
-    
+        residual = TimeSeries(h1 - h_new, times=t1)
+        subtracted_signal_tdomain[ifo] = residual.to_pycbc()
 
-    
+    return subtracted_signal_tdomain

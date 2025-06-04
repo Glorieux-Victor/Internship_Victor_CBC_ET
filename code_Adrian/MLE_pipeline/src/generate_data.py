@@ -14,7 +14,7 @@ default_cbc_params = {
               'f_lower': 5
                 }
 
-def generate_frequency_domain_signal(cbc_params=default_cbc_params, ifos=['E1', 'E2', 'E3'], with_noise=False):
+def generate_frequency_domain_signal(cbc_params=default_cbc_params, ifos=['E1', 'E2', 'E3'], with_noise=False, epoch=0):
     """
     Generate a CBC signal in the frequency domain for a given list of detectors.
 
@@ -35,7 +35,7 @@ def generate_frequency_domain_signal(cbc_params=default_cbc_params, ifos=['E1', 
     print('Segment duration: ' + format(segment_duration, '.1f') + 's')
     
     generator = FDomainDetFrameGenerator(
-    FDomainCBCGenerator, 0, detectors=ifos,
+    FDomainCBCGenerator, epoch, detectors=ifos,
     delta_f=1./segment_duration, **cbc_params)
 
     # Génération du signal

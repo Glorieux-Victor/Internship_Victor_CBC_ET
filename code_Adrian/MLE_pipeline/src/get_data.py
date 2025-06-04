@@ -4,9 +4,9 @@ from gwpy.timeseries import TimeSeries
 import glob
 from pycbc.types import FrequencySeries
 
-path_to_MDC_data = {'E1': '/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/',
-                    'E2': '/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/',
-                    'E3': '/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/'
+path_to_MDC_data = {'E1': '/home/shared/et-mdc-frame-files/mdc1/v2/data/E1/',
+                    'E2': '/home/shared/et-mdc-frame-files/mdc1/v2/data/E2/',
+                    'E3': '/home/shared/et-mdc-frame-files/mdc1/v2/data/E3/'
                     }
 psd_file = '../input/ET10km_columns.txt'
 
