@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import time
+from IPython.display import clear_output
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import optimize
@@ -132,19 +133,28 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,st
     #Nelder-Mead,  Powell, L-BFGS-B
     # 'tol' : 10e-2
     minimizer_kwargs={ "method": method,"bounds":bounds,'tol':tol}
+
     def print_fun(x, f, accepted):
+            clear_output(wait=True)
             global p
             p+=1
             #print("at minimum %.4f accepted %d" % (f, int(accepted)),end="\r")
             if int(accepted) == 1:
                 print("min : {}, it : {}".format(f,p))
+    
+    def print_fun_DE(x, f):
+            clear_output(wait=True)
+            global p
+            p+=1
+            #print("at minimum %.4f accepted %d" % (f, int(accepted)),end="\r")
+            print("min : {}, it : {}".format(f,p))
 
 
     if minimisation == 'basinhopping':
         result_glob = basinhopping(likelihood_calculation_glob, x0=initial_params, minimizer_kwargs=minimizer_kwargs,niter = nb_iter,stepsize=stepsize,callback=print_fun)
 
     elif minimisation == 'differential_evolution':
-        result_glob = differential_evolution(likelihood_calculation_glob,bounds,x0=initial_params)
+        result_glob = differential_evolution(likelihood_calculation_glob,bounds,x0=initial_params,maxiter=10000,tol=tol,callback=print_fun_DE)
 
     #params_glob_dataFrame_file_chirp.txt
     if save_data :
