@@ -164,14 +164,16 @@ class MDCGaussianNoise(GaussianNoise):
             updated_params = {**params, **self.static_params}
             #print(updated_params)
             self.update(**updated_params)
+            mloglr = -self.loglr
+            print(mloglr,end="\r")
         
-            return -self.loglr  # Negate for maximization
+            return mloglr  # Negate for maximization
         
 
         # Run the optimization
         iteration_counter = {"count": 0}
         
-        def status_callback(x, f=None, accept=False):
+        def status_callback(x, f, accept=False):
             clear_output(wait=True)
             iteration_counter["count"] += 1
             current_value = negative_loglr(x)
