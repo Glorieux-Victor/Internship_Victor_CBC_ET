@@ -128,7 +128,7 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,st
     else :
         pi2 = np.pi/2
         dpi = 2*np.pi
-        bounds=((0,10),(1,50),(0.1,5),(10,10000),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-1,1),(-1,1))
+        bounds=((1001620450,1001620463),(20,25),(0.8,1.2),(300,800),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-0.95,0.95),(-0.95,0.95))
 
     #Nelder-Mead,  Powell, L-BFGS-B
     # 'tol' : 10e-2
