@@ -25,12 +25,12 @@ from scipy.optimize import minimize
 params_dataFrame_glob = pd.DataFrame(data={'mloglik': [],'tc': [], 'mass1': [],
                                         'mass2': [], 'distance': [], 'ra' : [], 'dec' : [],
                                         'polarization': [], 'inclination': [], 'spin1z' : [], 'spin2z' : [],
-                                        'chirp' : [], 'q' : []})
+                                         'coa_phase': [], 'chirp' : [], 'q' : []})
 
 p=0
 k=0
 
-def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,stepsize,log_noise_likelihood_from_SNR,normalisation,save_data,file_name):
+def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,maxiter,stepsize,log_noise_likelihood_from_SNR,normalisation,save_data,file_name):
 
     print('Expected log likelihood noise: {:.2f}'.format(log_noise_likelihood_from_SNR))
 
@@ -39,7 +39,7 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,st
     params_dataFrame_glob = pd.DataFrame(data={'mloglik': [],'tc': [], 'mass1': [],
                                         'mass2': [], 'distance': [], 'ra' : [], 'dec' : [],
                                         'polarization': [], 'inclination': [], 'spin1z' : [], 'spin2z' : [],
-                                        'chirp' : [], 'q' : []})
+                                        'coa_phase': [], 'chirp' : [], 'q' : []})
     k=0
     p=0
 
@@ -66,11 +66,11 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,st
             # Paramètres extrinsèques
             'ra': params[4], 'dec': params[5], 'distance': params[3],
             'polarization': params[6], 'inclination': params[7],
-            'tc': params[0] , 'coa_phase': 0}
+            'tc': params[0] , 'coa_phase': params[10]}
 
         global params_dataFrame_glob, k
         model.update(tc=params[0],mass1=mass1,mass2=mass2,distance=params[3],ra=params[4],dec=params[5],
-                    polarization=params[6],inclination=params[7],spin1z=params[8],spin2z=params[9])
+                    polarization=params[6],inclination=params[7],spin1z=params[8],spin2z=params[9],coa_phase=params[10],)
 
 
         if not hasattr(model, "_loglr_cache"):
@@ -95,14 +95,38 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,st
             add = pd.DataFrame(data={'mloglik': mloglik, 'tc': params[0], 'mass1': mass1,
                                   'mass2': mass2, 'distance': params[3], 'ra' : params[4],
                                   'dec' : params[5], 'polarization': params[6], 'inclination': params[7],
-                                  'spin1z' : params[8], 'spin2z' : params[9], 'chirp' : params[1],
-                                 'q' : params[2]},index=[k])
+                                  'spin1z' : params[8], 'spin2z' : params[9], 'coa_phase': params[10],
+                                  'chirp' : params[1], 'q' : params[2]},index=[k])
             params_dataFrame_glob = pd.concat([params_dataFrame_glob,add])
             k +=1
 
         print (mloglik,end="\r")
 
         return mloglik
+
+
+    def negative_loglr(x):
+
+        variable_params = ['tc','mass1', 'mass2','distance', 'ra', 'dec', 'polarization', 'inclination','spin1z', 'spin2z', 'coa_phase']
+        static_params = {'spin1x': 0., 'spin2x': 0.,  'spin1y': 0., 'spin2y': 0.,'approximant' : 'IMRPhenomXPHM', 'f_lower' : 5.}
+        # Unwrap parameters
+        params = dict(zip(variable_params, x))
+        
+        # Convert chirp mass and mass ratio into mass1 and mass2
+        if 'mass1' in variable_params:
+            m1 = mass1_from_mchirp_q(params['mass1'], params['mass2'])
+            m2 = mass2_from_mchirp_q(params['mass1'], params['mass2'])
+            params['mass1'] = m1
+            params['mass2'] = m2
+        # Update model with the given vector of parameters
+        updated_params = {**params, **static_params}
+        #print(updated_params)
+        model.update(**updated_params)
+        mloglr = -model.loglr
+        #print(mloglr,end="\r")
+    
+        return mloglr  # Negate for maximization
+
 
     #réels : m1=38.6, m2=29.3
     mass1_init = 30
@@ -128,7 +152,7 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,st
     else :
         pi2 = np.pi/2
         dpi = 2*np.pi
-        bounds=((1001620450,1001620463),(20,25),(0.8,1.2),(300,800),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-0.95,0.95),(-0.95,0.95))
+        bounds=((1001620450,1001620463),(20,25),(0.8,1.2),(300,800),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-0.95,0.95),(-0.95,0.95),(0,pi2))
 
     #Nelder-Mead,  Powell, L-BFGS-B
     # 'tol' : 10e-2
@@ -150,11 +174,19 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,st
             print("min : {}, it : {}".format(f,p))
 
 
+    iteration_counter = {"count": 0}
+    def status_callback(x, f, accept=False):
+        clear_output(wait=True)
+        iteration_counter["count"] += 1
+        current_value = negative_loglr(x)
+        print(f"Iteration {iteration_counter['count']}: negative_loglr = {current_value}")
+
+
     if minimisation == 'basinhopping':
         result_glob = basinhopping(likelihood_calculation_glob, x0=initial_params, minimizer_kwargs=minimizer_kwargs,niter = nb_iter,stepsize=stepsize,callback=print_fun)
 
     elif minimisation == 'differential_evolution':
-        result_glob = differential_evolution(likelihood_calculation_glob,bounds,x0=initial_params,maxiter=10000,tol=tol,callback=print_fun_DE)
+        result_glob = differential_evolution(likelihood_calculation_glob,bounds,x0=initial_params,maxiter=maxiter,tol=tol,callback=status_callback)
 
     #params_glob_dataFrame_file_chirp.txt
     if save_data :
