@@ -191,17 +191,17 @@ def extraction_temps(indexes,type,print_):
 
     #Extraction du fichier qui contient le nom des observations du MDC présentes sur le serveur de l'IJCLab
     cols = ["col1","col2","col3"]
-    ET = pd.read_csv("ET_data.txt",sep = '  ',engine='python')
+    ET = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt",sep = '  ',engine='python')
 
     #Ce code permet d'extraire les refs, t0 et tc des événements d'onde GW que nous voulons regarder.
     #Nous listons les indices des évenements dans "indexes" et nous regardons en priorité les événements avec le meilleur SNR.
     #Une "ref" correspond à l'indice du fichier "ET_data" qui nous permet d'y trouver le nom du fichier contenant les données que nous souhaitons regarder.
     #Une "ref_sup" est l'indice de fin de nos événement.
     def temps_ref(indexes):
-        ET_params = pd.read_csv("list_mdc1.txt",sep = ' ',engine='python')
-        ET_params = ET_params.sort_values('snrET_Opt',ascending=False) #Sélectionne les events avec le meilleur SNR pour les indices les plus faibles.
+        ET_params = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', usecols = ['t0', 'tc', 'snr','type'], index_col = False)
+        ET_params = ET_params.sort_values('snr',ascending=False) #Sélectionne les events avec le meilleur SNR pour les indices les plus faibles.
         ET_params = ET_params[ET_params['type'] == type] #Sélectionne un type particulier d'événements.
-        #print(ET_params.head())
+        #print(ET_params)
         ref_list=[]
         t0_list=[]
         tc_list=[]
