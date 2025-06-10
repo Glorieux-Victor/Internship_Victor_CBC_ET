@@ -30,7 +30,7 @@ params_dataFrame_glob = pd.DataFrame(data={'mloglik': [],'tc': [], 'mass1': [],
 p=0
 k=0
 
-def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,maxiter,stepsize,log_noise_likelihood_from_SNR,normalisation,save_data,file_name):
+def minimisation_globale(model,initial_params,bounds,minimisation,method,tol,nb_iter,maxiter,stepsize,log_noise_likelihood_from_SNR,normalisation,save_data,file_name):
 
     print('Expected log likelihood noise: {:.2f}'.format(log_noise_likelihood_from_SNR))
 
@@ -150,9 +150,7 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,ma
             bornes_inf_sup_scaled += ((0,points*0.1),) #bornes à donner.
         bounds=bornes_inf_sup_scaled
     else :
-        pi2 = np.pi/2
-        dpi = 2*np.pi
-        bounds=((1001620450,1001620463),(20,25),(0.8,1.2),(300,800),(0,dpi),(-pi2,pi2),(0,dpi),(0,np.pi),(-0.95,0.95),(-0.95,0.95),(0,pi2))
+        bounds=bounds
 
     #Nelder-Mead,  Powell, L-BFGS-B
     # 'tol' : 10e-2
@@ -190,7 +188,7 @@ def minimisation_globale(model,initial_params,minimisation,method,tol,nb_iter,ma
 
     #params_glob_dataFrame_file_chirp.txt
     if save_data :
-        params_dataFrame_glob.to_csv("data_files/"+ file_name ,index=False)
+        params_dataFrame_glob.to_csv("/home/victor/Internship_Victor_CBC_ET/data_files/"+ file_name ,index=False)
 
     return result_glob
 

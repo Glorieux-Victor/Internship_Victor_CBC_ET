@@ -1,7 +1,46 @@
 from pycbc.conversions import mchirp_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 import matplotlib.pyplot as plt
+from generate_data import generate_frequency_domain_signal
 from gwpy.timeseries import TimeSeries
 from pycbc.types import TimeSeries as PycbcTimeSeries
+import pandas as pd
+
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+
+def convert_signal(file_name, epoch):
+    params_opti_file = pd.read_csv('/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/results_mini/' + file_name)
+
+    para_opti = [ params_opti_file['tc'].values[0],  params_opti_file['mass1'].values[0],  params_opti_file['mass2'].values[0],
+                params_opti_file['distance'].values[0], params_opti_file['ra'].values[0], params_opti_file['dec'].values[0],  params_opti_file['polarization'].values[0], params_opti_file['inclination'].values[0],
+                params_opti_file['spin1z'].values[0],  params_opti_file['spin2z'].values[0], params_opti_file['coa_phase'].values[0]]
+    list_params = ['tc','mass1','mass2','distance','ra','dec','polarization','inclination','spin1z','spin2z','coa_phase']
+    maximized_params = dict(zip(list_params, para_opti))
+    cbc_params_stat = {'spin1x': 0., 'spin2x': 0.,  'spin1y': 0., 'spin2y': 0.,
+        'eccentricity': 0}
+    cbc_params_stat ['approximant'] = 'IMRPhenomXPHM'
+    cbc_params_stat ['f_lower'] = 5
+
+    para_opti={**maximized_params, **cbc_params_stat}
+
+
+    reconstructed_signal_fdomain = generate_frequency_domain_signal(para_opti, epoch=epoch)
+
+    ifos=['E1', 'E2', 'E3']
+    reconstructed_signal_tdomain = {}
+    for ifo in ifos:
+        reconstructed_signal_tdomain[ifo] = reconstructed_signal_fdomain[ifo].to_timeseries() # Just an inverse FFT
+
+    return reconstructed_signal_tdomain, reconstructed_signal_fdomain
+
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
 
 def comparison_signals(model,reconstructed_signal_tdomain,data,residual,save_fig):
     # Calcul de la différence
@@ -47,6 +86,11 @@ def comparison_signals(model,reconstructed_signal_tdomain,data,residual,save_fig
         plt.savefig("Full_loc_minim_L1_Comparaison_signal")
 
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+
 def comparison_freq(opti_cut,reel_cut,residual,psd_opti,psd_reel,psd_res):
     #Conversion en GwpyTimeseries ======================
     #tsgwpy_opti_cut = TimeSeries(data = opti_cut,times=opti_cut.get_sample_times())
@@ -68,6 +112,12 @@ def comparison_freq(opti_cut,reel_cut,residual,psd_opti,psd_reel,psd_res):
     ax.legend()
     ax.set_xlabel('Frequency [Hz]')
     ax.set_ylabel('PSD [1/Hz]')
+
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
 
 def qtrans(tsgwpy):
     qtrans = tsgwpy.q_transform(frange=(4, 100), qrange=(5, 30))
