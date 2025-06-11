@@ -60,7 +60,7 @@ def convert_signal(file_name, epoch):
 #======================================================================================================
 
 
-def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = False):
+def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = False, opti_params = False):
     """
     Compare the reconstructed signal and the original data in the time domain (plot).
 
@@ -70,6 +70,8 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
         DataFrame from read_csv containing the maximized parameters from the maximization process.
     reel_params : list (optional)
         List containing the reel parameters if known.
+    opti_params : bool (optional)
+        Print the optimized parameters.
     position : str
         "Front" or "Back" depending which part of the signal we want to look.
     reconstructed_signal_tdomain : dict, Pycbc TimeSeries
@@ -92,20 +94,22 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12), sharex=True, gridspec_kw={'height_ratios': [3, 1]})
 
     # Tracer les deux signaux dans le premier axe :
-    ax1.plot(reconstructed_signal_tdomain[ifo].get_sample_times(),reconstructed_signal_tdomain[ifo],label= ifo + ' opti', zorder = 2)
+    ax1.plot(reconstructed_signal_tdomain[ifo].get_sample_times(),reconstructed_signal_tdomain[ifo],label= 'Reconstructed signal (' + ifo + ')', zorder = 2)
     if position == "Front" :
-        ax1.set_xlim(maximized_params['tc'].values[0] - 5, maximized_params['tc'].values[0] + 1)
+        ax1.set_xlim(maximized_params['tc'].values[0] - 3, maximized_params['tc'].values[0] + 0.5)
     elif position == "Back" :
         ax1.set_xlim(data[ifo].end_time - 10, data[ifo].end_time - 6)
 
     ax1.set_xscale('seconds', epoch=(data[ifo].start_time))
-    ax1.plot(data[ifo].get_sample_times(),data[ifo], color='orange',label= ifo +' reel',zorder = 1)
+    ax1.plot(data[ifo].get_sample_times(),data[ifo], color='orange',label= 'MDC data (' + ifo + ')',zorder = 1)
     ax1.set_title('Signals comparison for optimized parameters', fontsize = 30)
-    ax1.set_ylabel('Amplitude')
-    ax1.text(0.5, 0.2, r'Params_opti : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, coa_phase : {}.'.format(round(para_opti[1],3),
-        round(para_opti[2],4), round(para_opti[3],4), round(para_opti[4],4), round(para_opti[5],4),round(para_opti[6],4), round(para_opti[7],4),round(para_opti[8],4),
-        round(para_opti[9],4),round(para_opti[10],4),round(para_opti[11],4)), horizontalalignment='center',
-        verticalalignment='center', transform=ax1.transAxes,fontsize=12)
+    ax1.set_ylabel('Amplitude', fontsize = 20)
+
+    if opti_params :
+        ax1.text(0.5, 0.2, r'Params_opti : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, coa_phase : {}.'.format(round(para_opti[1],3),
+            round(para_opti[2],4), round(para_opti[3],4), round(para_opti[4],4), round(para_opti[5],4),round(para_opti[6],4), round(para_opti[7],4),round(para_opti[8],4),
+            round(para_opti[9],4),round(para_opti[10],4),round(para_opti[11],4)), horizontalalignment='center',
+            verticalalignment='center', transform=ax1.transAxes,fontsize=12)
 
     if reel_params :
         ax1.text(0.5, 0.3, r'Params_reels : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, coa_phase : {}.'.format(round(reel_params[0],3),
@@ -117,9 +121,11 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
 
     # Tracer la différence dans le second axe :
     ax2.plot(residual[ifo].get_sample_times(), residual[ifo], color='black')
-    ax2.set_ylabel('Résidual')
-    ax2.set_xlabel('Time [s]')
+    ax2.set_ylabel('Résidual',fontsize = 20)
+    ax2.set_xlabel('Time [s]', fontsize = 20)
 
+    ax1.tick_params(labelsize = 18)
+    ax2.tick_params(labelsize = 18)
 
     plt.tight_layout()
     if save_fig :
@@ -179,9 +185,9 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo):
 
     plt.figure()
     ax = plt.gca()
-    ax.loglog(psd_opti.frequencies, psd_opti, label= ifo + ' optimized, PSD',zorder=3)
-    ax.loglog(psd_reel.frequencies, psd_reel, label= ifo + ' reel, PSD',zorder=2)
-    ax.loglog(psd_res.frequencies, psd_res, label= ifo + ' residual, PSD',zorder = 1)
+    ax.loglog(psd_opti.frequencies, psd_opti, label= 'Reconstructed signal (' + ifo + ')',zorder=3)
+    ax.loglog(psd_reel.frequencies, psd_reel, label= 'MDC data (' + ifo + ')',zorder=2)
+    ax.loglog(psd_res.frequencies, psd_res, label= 'Residual',zorder = 1)
     ax.set_ylim(1e-53, 1e-44)
     ax.set_xlim(4, 2048)
     ax.legend()
@@ -194,18 +200,24 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo):
 #======================================================================================================
 
 
-def qtrans(tsgwpy,frange,qrange):
+def qtrans(tsgwpy,frange,qrange,colorbar_limits = None):
     """
     Plot q-Transform of gwpy TimeSeries.
 
     Parameters
     ----------
     tsgwpy : Gwpy TimeSeries
-
+    colorbar_limits : numpy.array
+        Limits of the colorbar
     """
     qtrans = tsgwpy.q_transform(frange=frange, qrange=qrange)
 
     plot = qtrans.plot(figsize=[8, 4])
+
+    if colorbar_limits.any() != None :
+        im = plot.get_images()[0]  # récupérer l'image affichée
+        im.set_clim(colorbar_limits[0], colorbar_limits[1])
+
     ax = plot.gca()
     #ax.set_ylim(5, 100)
     #ax.set_xlim(10, 12)

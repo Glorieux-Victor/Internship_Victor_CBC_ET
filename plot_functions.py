@@ -40,10 +40,31 @@ def plot_dual_local_minimisation(params_dataFrame,x_data,y_data,x_label,y_label,
         plt.savefig("minimisation/"+ x_data +"_"+ y_data +"_minimisation_locale")
 
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 
 
-def plot_mnimisation(params_dataFrame,para_opti,para_reels,initial_params,log_noise_likelihood_from_SNR,mini,save_fig):
+def plot_mnimisation(params_dataFrame,print_params = False,initial_params = False, mini = 'test',log_noise_likelihood_from_SNR = False,save_fig = False,para_reels = False):
+
+    """
+    Corner plot of the evolution of the minimization process for each parameters of the signal considered.
+
+    Parameters
+    ----------
+    params_dataFrame : DataFrame
+        DataFrame from read_csv containing the parameters and results of the maximization process.
+    print_params: bool (optional)
+        Print the optimal parameters on the plot.
+    initial_params : bool (optional)
+        Print the initial parameters on the plot.
+    save_fig : bool (optional)
+    
+    Returns
+    -------
+    The corner plot.
+    """
 
     tc_list=params_dataFrame['tc']
     mass1_list=params_dataFrame['mass1']
@@ -55,11 +76,12 @@ def plot_mnimisation(params_dataFrame,para_opti,para_reels,initial_params,log_no
     incl_list=params_dataFrame['inclination']
     s1z_list=params_dataFrame['spin1z']
     s2z_list=params_dataFrame['spin2z']
+    coa_phase_list=params_dataFrame['coa_phase']
     ll_ratio_test=params_dataFrame['mloglik']
 
     data_tail = params_dataFrame.loc[params_dataFrame['mloglik'].idxmin()]
 
-    nb_params = len(para_reels)
+    nb_params = len(data_tail) - 3
     fig, axs = plt.subplots(nrows=nb_params,ncols=nb_params,figsize=(40,40))
 
 
@@ -71,13 +93,13 @@ def plot_mnimisation(params_dataFrame,para_opti,para_reels,initial_params,log_no
         ax.axvline(float(data_tail[data_x]),linestyle = 'dashed',color='r', label=label_x + r'$_{,opt}$ = ' + str(round(float(data_tail[data_x]),2)))
         ax.legend()
 
-    axs_list = [axs[0,1], axs[0,2],   axs[0,3],      axs[0,4],   axs[0,5],   axs[0,6],       axs[0,7],      axs[0,8],   axs[0,9],   axs[1,2],    axs[1,3],     axs[1,4], axs[1,5], axs[1,6],        axs[1,7],      axs[1,8],  axs[1,9],  axs[2,3],      axs[2,4],   axs[2,5],   axs[2,6],       axs[2,7],      axs[2,8],   axs[2,9],   axs[3,4],      axs[3,5],      axs[3,6],       axs[3,7],      axs[3,8],      axs[3,9],      axs[4,5], axs[4,6],       axs[4,7],      axs[4,8],  axs[4,9],  axs[5,6],       axs[5,7],      axs[5,8],  axs[5,9],  axs[6,7],      axs[6,8],       axs[6,9],       axs[7,8],      axs[7,9],      axs[8,9]]
-    x_list = [tc_list,    mass2_list, distance_list, ra_list,    dec_list,   pola_list,      incl_list,     s1z_list,   s2z_list,   mass2_list, distance_list, ra_list,  dec_list,  pola_list,      incl_list,     s1z_list,  s2z_list,  distance_list, ra_list,    dec_list,   pola_list,      incl_list,     s1z_list,   s2z_list,   ra_list,       dec_list,      pola_list,      incl_list,     s1z_list,      s2z_list,      dec_list, pola_list,      incl_list,     s1z_list,  s2z_list,  pola_list,      incl_list,     s1z_list,  s2z_list,  incl_list,     s1z_list,       s2z_list,       s1z_list,      s2z_list,      s2z_list]
-    y_list = [mass1_list, mass1_list, mass1_list,    mass1_list, mass1_list, mass1_list,     mass1_list,    mass1_list, mass1_list, tc_list,    tc_list,       tc_list,  tc_list,   tc_list,        tc_list,       tc_list,   tc_list,   mass2_list,    mass2_list, mass2_list, mass2_list,     mass2_list,    mass2_list, mass2_list, distance_list, distance_list, distance_list,  distance_list, distance_list, distance_list, ra_list,  ra_list,        ra_list,       ra_list,   ra_list,   dec_list,       dec_list,      dec_list,  dec_list,  pola_list,     pola_list,      pola_list,      incl_list,     incl_list,     s1z_list]
-    label_x = [r'$t_c$',  r'$m_2$',   r'distance',   r'ra',      r'dec',     r'pola',        r'incl',       r's_{1z}',  r's_{2z}',  r'$m_2$',   r'distance',   r'ra',    r'dec',    r'pola',        r'incl',       r's_{1z}', r's_{2z}', r'distance',   r'ra',      r'dec',     r'pola',        r'incl',       r's_{1z}',  r's_{2z}',  r'ra',         r'dec',        r'pola',        r'incl',       r's_{1z}',     r's_{2z}',     r'dec',   r'pola',        r'incl',       r's_{1z}', r's_{2z}', r'pola',        r'incl',       r's_{1z}', r's_{2z}', r'incl',       r's_{1z}',      r's_{2z}',      r's_{1z}',     r's_{2z}',     r's_{2z}']
-    label_y = [r'$m_1$',  r'$m_1$',   r'$m_1$',      r'$m_1$',   r'$m_1$',   r'$m_1$',       r'$m_1$',      r'$m_1$',   r'$m_1$',   r'$t_c$',   r'$t_c$',      r'$t_c$', r'$t_c$',  r'$t_c$',       r'$t_c$',      r'$t_c$',  r'$t_c$',  r'$m_2$',      r'$m_2$',   r'$m_2$',   r'$m_2$',       r'$m_2$',      r'$m_2$',   r'$m_2$',   r'distance',   r'distance',   r'distance',    r'distance',   r'distance',   r'distance',   r'ra',    r'ra',          r'ra',         r'ra',     r'ra',     r'dec',         r'dec',        r'dec',    r'dec',    r'pola',       r'pola',        r'pola',        r'incl',       r'incl',       r's_{1z}']
-    data_x = ['tc',       'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z',   'mass2',    'distance',    'ra',     'dec',     'polarization', 'inclination', 'spin1z',  'spin2z',  'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z',   'ra',          'dec',         'polarization', 'inclination', 'spin1z',      'spin2z',      'dec',    'polarization', 'inclination', 'spin1z',  'spin2z',  'polarization', 'inclination', 'spin1z',  'spin2z', 'inclination',  'spin1z',       'spin2z',       'spin1z',      'spin2z',      'spin2z']
-    data_y = ['mass1',    'mass1',    'mass1',       'mass1',    'mass1',    'mass1',        'mass1',       'mass1',    'mass1',    'tc',       'tc',          'tc',     'tc',      'tc',           'tc',          'tc',      'tc',      'mass2',       'mass2',    'mass2',    'mass2',        'mass2',       'mass2',    'mass2',    'distance',    'distance',    'distance',     'distance',    'distance',    'distance',    'ra',     'ra',           'ra',          'ra',      'ra',      'dec',          'dec',         'dec',     'dec',    'polarization', 'polarization', 'polarization', 'inclination', 'inclination', 'spin1z']
+    axs_list = [axs[0,1], axs[0,2],   axs[0,3],      axs[0,4],   axs[0,5],   axs[0,6],       axs[0,7],      axs[0,8],   axs[0,9],   axs[0,10],              axs[1,2],   axs[1,3],      axs[1,4], axs[1,5], axs[1,6],       axs[1,7],      axs[1,8],  axs[1,9],  axs[1,10],                axs[2,3],      axs[2,4],   axs[2,5],   axs[2,6],       axs[2,7],      axs[2,8],   axs[2,9],   axs[2,10],                axs[3,4],      axs[3,5],      axs[3,6],       axs[3,7],      axs[3,8],      axs[3,9],      axs[3,10],                 axs[4,5], axs[4,6],       axs[4,7],      axs[4,8],  axs[4,9],  axs[4,10],                   axs[5,6],       axs[5,7],      axs[5,8],  axs[5,9],  axs[5,10],               axs[6,7],       axs[6,8],       axs[6,9],       axs[6,10],                axs[7,8],      axs[7,9],      axs[7,10],              axs[8,9],  axs[8,10],               axs[9,10]]
+    x_list = [tc_list,    mass2_list, distance_list, ra_list,    dec_list,   pola_list,      incl_list,     s1z_list,   s2z_list,   coa_phase_list,         mass2_list, distance_list, ra_list,  dec_list, pola_list,      incl_list,     s1z_list,  s2z_list,  coa_phase_list,           distance_list, ra_list,    dec_list,   pola_list,      incl_list,     s1z_list,   s2z_list,   coa_phase_list,           ra_list,       dec_list,      pola_list,      incl_list,     s1z_list,      s2z_list,      coa_phase_list,            dec_list, pola_list,      incl_list,     s1z_list,  s2z_list,  coa_phase_list,              pola_list,      incl_list,     s1z_list,  s2z_list,  coa_phase_list,          incl_list,      s1z_list,       s2z_list,       coa_phase_list,           s1z_list,      s2z_list,      coa_phase_list,         s2z_list,  coa_phase_list,          coa_phase_list]
+    y_list = [mass1_list, mass1_list, mass1_list,    mass1_list, mass1_list, mass1_list,     mass1_list,    mass1_list, mass1_list, mass1_list,             tc_list,    tc_list,       tc_list,  tc_list,  tc_list,        tc_list,       tc_list,   tc_list,   tc_list,                  mass2_list,    mass2_list, mass2_list, mass2_list,     mass2_list,    mass2_list, mass2_list, mass2_list,               distance_list, distance_list, distance_list,  distance_list, distance_list, distance_list, distance_list,             ra_list,  ra_list,        ra_list,       ra_list,   ra_list,   ra_list,                     dec_list,       dec_list,      dec_list,  dec_list,  dec_list,pola_list,      pola_list,      pola_list,      pola_list,      pola_list,                incl_list,     incl_list,     incl_list,              s1z_list,  s1z_list,                s2z_list]
+    label_x = [r'$t_c$',  r'$m_2$',   r'distance',   r'ra',      r'dec',     r'pola',        r'incl',       r's_{1z}',  r's_{2z}',  r'phase_\text{c}',      r'$m_2$',   r'distance',   r'ra',    r'dec',   r'pola',        r'incl',       r's_{1z}', r's_{2z}', r'phase_\text{c}',        r'distance',   r'ra',      r'dec',     r'pola',        r'incl',       r's_{1z}',  r's_{2z}',  r'phase_\text{c}',        r'ra',         r'dec',        r'pola',        r'incl',       r's_{1z}',     r's_{2z}',     r'phase_\text{c}',         r'dec',   r'pola',        r'incl',       r's_{1z}', r's_{2z}', r'phase_\text{c}',           r'pola',        r'incl',       r's_{1z}', r's_{2z}', r'phase_\text{c}',       r'incl',        r's_{1z}',      r's_{2z}',      r'phase_\text{c}',        r's_{1z}',     r's_{2z}',     r'phase_\text{c}',      r's_{2z}', r'phase_\text{c}',       r'phase_\text{c}']
+    label_y = [r'$m_1$',  r'$m_1$',   r'$m_1$',      r'$m_1$',   r'$m_1$',   r'$m_1$',       r'$m_1$',      r'$m_1$',   r'$m_1$',   r'$m_1$',               r'$t_c$',   r'$t_c$',      r'$t_c$', r'$t_c$', r'$t_c$',       r'$t_c$',      r'$t_c$',  r'$t_c$',  r'$t_c$',                 r'$m_2$',      r'$m_2$',   r'$m_2$',   r'$m_2$',       r'$m_2$',      r'$m_2$',   r'$m_2$',   r'$m_2$',                 r'distance',   r'distance',   r'distance',    r'distance',   r'distance',   r'distance',   r'distance',               r'ra',    r'ra',          r'ra',         r'ra',     r'ra',     r'ra',                       r'dec',         r'dec',        r'dec',    r'dec',    r'dec',                  r'pola',        r'pola',        r'pola',        r'pola',                  r'incl',       r'incl',       r'incl',                r's_{1z}', r's_{1z}'                r's_{2z}']
+    data_x = ['tc',       'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z',   'coa_phase',            'mass2',    'distance',    'ra',     'dec',    'polarization', 'inclination', 'spin1z',  'spin2z',  'coa_phase',              'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z',   'coa_phase',              'ra',          'dec',         'polarization', 'inclination', 'spin1z',      'spin2z',      'coa_phase',               'dec',    'polarization', 'inclination', 'spin1z',  'spin2z',  'coa_phase',                 'polarization', 'inclination', 'spin1z',  'spin2z',  'coa_phase',             'inclination',  'spin1z',       'spin2z',       'coa_phase',              'spin1z',      'spin2z',      'coa_phase',            'spin2z',  'coa_phase',             'coa_phase']
+    data_y = ['mass1',    'mass1',    'mass1',       'mass1',    'mass1',    'mass1',        'mass1',       'mass1',    'mass1',    'mass1',                'tc',       'tc',          'tc',     'tc',     'tc',           'tc',          'tc',      'tc',      'tc',                     'mass2',       'mass2',    'mass2',    'mass2',        'mass2',       'mass2',    'mass2',    'mass2',                  'distance',    'distance',    'distance',     'distance',    'distance',    'distance',    'distance',                'ra',     'ra',           'ra',          'ra',      'ra',      'ra',                        'dec',          'dec',         'dec',     'dec',     'dec',                   'polarization', 'polarization', 'polarization', 'polarization',           'inclination', 'inclination', 'inclination',          'spin1z',  'spin1z',                'spin2z']
 
     for i in range(len(axs_list)):
         plot_corr(x_list[i],y_list[i],label_x[i],label_y[i],data_x[i],data_y[i],axs_list[i],data_tail)
@@ -85,39 +107,54 @@ def plot_mnimisation(params_dataFrame,para_opti,para_reels,initial_params,log_no
     fig.tight_layout()
 
 
-
-    axs_off = [axs[1,0],axs[2,0],axs[3,0],axs[4,0],axs[5,0],axs[6,0],axs[7,0],axs[8,0],axs[9,0],
-            axs[2,1],axs[3,1],axs[3,2],axs[4,1],axs[4,2], axs[4,3],
-            axs[5,1],axs[5,2], axs[5,3], axs[5,4],
-            axs[6,1],axs[6,2], axs[6,3], axs[6,4],axs[6,5],
-            axs[7,1],axs[7,2], axs[7,3], axs[7,4],axs[7,5],axs[7,6],
-            axs[8,1],axs[8,2], axs[8,3], axs[8,4],axs[8,5],axs[8,6],axs[8,7],
-            axs[9,1],axs[9,2], axs[9,3], axs[9,4],axs[9,5],axs[9,6],axs[9,7],axs[9,8]]
+    axs_off = [
+            axs[1,0],
+            axs[2,0],axs[2,1],
+            axs[3,0],axs[3,1],axs[3,2],
+            axs[4,0],axs[4,1],axs[4,2], axs[4,3],
+            axs[5,0],axs[5,1],axs[5,2], axs[5,3], axs[5,4],
+            axs[6,0],axs[6,1],axs[6,2], axs[6,3], axs[6,4],axs[6,5],
+            axs[7,0],axs[7,1],axs[7,2], axs[7,3], axs[7,4],axs[7,5],axs[7,6],
+            axs[8,0],axs[8,1],axs[8,2], axs[8,3], axs[8,4],axs[8,5],axs[8,6],axs[8,7],
+            axs[9,0],axs[9,1],axs[9,2], axs[9,3], axs[9,4],axs[9,5],axs[9,6],axs[9,7],axs[9,8],
+            axs[10,0],axs[10,1],axs[10,2], axs[10,3], axs[10,4],axs[10,5],axs[10,6],axs[10,7],axs[10,8],axs[10,9]]
     for i in axs_off:
         i.axis('off')
+
+
     ax=axs[7,2]
     mass1_init = round(mass1_from_mchirp_q(mchirp=initial_params[1],q=initial_params[2]),2)
     mass2_init = round(mass2_from_mchirp_q(mchirp=initial_params[1],q=initial_params[2]),2)
-    mass1_opti = round(mass1_from_mchirp_q(mchirp=para_opti['chirp'],q=para_opti['q']),2)
-    mass2_opti = round(mass2_from_mchirp_q(mchirp=para_opti['chirp'],q=para_opti['q']),2)
-    ax.text(0.5, 0.95, r'Params_opti : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}.'.format(round(para_opti['tc'],2),
-        mass1_opti, mass2_opti, round(para_opti['distance'],2), round(para_opti['ra'],2), round(para_opti['dec'],2),round(para_opti['polarization'],2),round(para_opti['inclination'],2),round(para_opti['spin1z'],2),
-        round(para_opti['spin2z'],2)), horizontalalignment='center',verticalalignment='center',fontsize=20)
-    ax.text(0.5, 0.80, r'Params_reels : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}.'.format(para_reels[0],
-        para_reels[1], para_reels[2], para_reels[3], para_reels[4], para_reels[5],para_reels[6],para_reels[7],para_reels[8],para_reels[9]), horizontalalignment='center',
+
+    if print_params :
+        ax.text(0.5, 0.95, r'Params_opti : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, phase : {}.'.format(round(data_tail['tc'],2),
+            round(data_tail['mass1'],2),round(data_tail['mass2'],2), round(data_tail['distance'],2), round(data_tail['ra'],2), round(data_tail['dec'],2),round(data_tail['polarization'],2),round(data_tail['inclination'],2),round(data_tail['spin1z'],2),
+            round(data_tail['spin2z'],2), round(data_tail['coa_phase'],2)), horizontalalignment='center',verticalalignment='center',fontsize=20)
+    
+    if para_reels :
+        ax.text(0.5, 0.80, r'Params_reels : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}.'.format(para_reels[0],
+            para_reels[1], para_reels[2], para_reels[3], para_reels[4], para_reels[5],para_reels[6],para_reels[7],para_reels[8],para_reels[9]), horizontalalignment='center',
+            verticalalignment='center', transform=ax.transAxes,fontsize=20)
+
+    if initial_params :
+        ax.text(0.5, 0.65, r'Params_init : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, phase : {}.'.format(initial_params[0],
+            mass1_init, mass2_init, initial_params[3], initial_params[4], initial_params[5],initial_params[6],initial_params[7],initial_params[8],
+            initial_params[9], initial_params[10]), horizontalalignment='center',verticalalignment='center', transform=ax.transAxes,fontsize=20)
+        
+    ax.text(0.5, 0.35, r'min_m2loglik : {}'.format(data_tail['mloglik']), horizontalalignment='center',
         verticalalignment='center', transform=ax.transAxes,fontsize=20)
-    ax.text(0.5, 0.65, r'Params_init : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}.'.format(initial_params[0],
-        mass1_init, mass2_init, initial_params[3], initial_params[4], initial_params[5],initial_params[6],initial_params[7],initial_params[8],
-        initial_params[9]), horizontalalignment='center',verticalalignment='center', transform=ax.transAxes,fontsize=20)
-    ax.text(0.5, 0.35, r'min_m2loglik : {}'.format(para_opti['mloglik']), horizontalalignment='center',
-        verticalalignment='center', transform=ax.transAxes,fontsize=20)
-    ax.text(0.5, 0.20, r'min_m2loglik attendu : {}'.format(log_noise_likelihood_from_SNR), horizontalalignment='center',
-        verticalalignment='center', transform=ax.transAxes,fontsize=20)
+    
+    if log_noise_likelihood_from_SNR :
+        ax.text(0.5, 0.20, r'min_m2loglik attendu : {}'.format(log_noise_likelihood_from_SNR), horizontalalignment='center',
+            verticalalignment='center', transform=ax.transAxes,fontsize=20)
 
     if save_fig == True:
         plt.savefig("minimisation/Full_Minimisation_chirp_"+ mini +"_signal_noise")
 
 
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
 
 
 def plot_correlation(params_dataFrame,model,para_reels,cbc_params,save_fig):
@@ -231,25 +268,47 @@ def plot_correlation(params_dataFrame,model,para_reels,cbc_params,save_fig):
         plt.savefig('correlation/Others_params_correlation')
 
 
-def plot_correlation_2_params(model,cbc_params,x_data,y_data,borne_x,borne_y,ech_x,ech_y,x_label,y_label,save_fig):
 
-    model.update(tc=cbc_params['tc'], mass1 = cbc_params['mass1'], mass2 = cbc_params['mass2'], inclination = 0,
-                    distance = cbc_params['distance'], ra = cbc_params['ra'], dec = cbc_params['dec'],
-                    polarization = cbc_params['polarization'],declination = cbc_params['declination'],
-                    spin1z = cbc_params['spin1z'],spin2z = cbc_params['spin2z'])
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+
+
+def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x,range_y,ech_x,ech_y,x_label,y_label,bounds_x = None, bounds_y = None ,save_fig = False):
+
+    """
+    2D plot of the correlation between 2 parameters of the signal.
+
+    Parameters
+    ----------
+    model : 
+    
+    Returns
+    -------
+    The 2D plot.
+    """
+
+    model.update(**cbc_params)
 
     #Params =============================
     Nom = 'V4'
-    param_x_name = x_data
-    param_y_name = y_data
     # borne_x = 500
     # ech_x = 10
     # borne_y = 3
     # ech_y = 0.2
     #====================================
 
-    x_grid = np.arange(cbc_params[param_x_name] - borne_x, cbc_params[param_x_name] + borne_x, ech_x)
-    y_grid = np.arange(cbc_params[param_y_name] - borne_y, cbc_params[param_y_name] + borne_y, ech_y)
+
+    if bounds_x.any() != None :
+        x_grid = np.arange(bounds_x[0], bounds_x[1], ech_x)
+    else : 
+        x_grid = np.arange(cbc_params[param_x_name] - range_x, cbc_params[param_x_name] + range_x, ech_x)
+
+    if bounds_y.any() != None:
+        y_grid = np.arange(bounds_y[0], bounds_y[1], ech_y)
+    else : 
+        y_grid = np.arange(cbc_params[param_y_name] - range_y, cbc_params[param_y_name] + range_y, ech_y)
 
     print("Iterations totales : ",len(x_grid)*len(y_grid))
     k=0
@@ -259,8 +318,9 @@ def plot_correlation_2_params(model,cbc_params,x_data,y_data,borne_x,borne_y,ech
 
     for i, x_ in enumerate(x_grid):
         for j, y_ in enumerate(y_grid):
-            params = {param_x_name : x_ ,  param_y_name : y_} #Les paramètres que l'on souhaite modifier sur le modèle de notre GW
-            model.update(**params) #Modification du modèle 
+            cbc_params[param_x_name] = x_
+            cbc_params[param_y_name] = y_
+            model.update(**cbc_params) #Modification du modèle 
             ll_ratio_grid_unit[i,j] = model.loglr #calcul du likelihood ratio
             k +=1 #Compteur du nombre d'itérations
             print ("Iteration : {}, likelihood : {}".format(k,ll_ratio_grid_unit[i,j]), end="\r")
@@ -290,6 +350,13 @@ def plot_correlation_2_params(model,cbc_params,x_data,y_data,borne_x,borne_y,ech
 
     if save_fig:
         plt.savefig(Nom + "_" + param_x_name + "_" + param_x_name)
+
+
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
 
 
 def plot_correlation_chirp_q(model,cbc_params,save_fig):
