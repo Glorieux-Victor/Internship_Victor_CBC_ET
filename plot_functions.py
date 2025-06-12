@@ -329,10 +329,36 @@ def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x
     ll_ratio_grid_unit = np.zeros((len(x_grid), len(y_grid)))
     print(ll_ratio_grid_unit.shape)
 
+    q_true = q_from_mass1_mass2(cbc_params['mass1'],cbc_params['mass2'])
+    mchrip_true = mchirp_from_mass1_mass2(cbc_params['mass1'],cbc_params['mass2'])
+
     for i, x_ in enumerate(x_grid):
         for j, y_ in enumerate(y_grid):
-            cbc_params[param_x_name] = x_
-            cbc_params[param_y_name] = y_
+            if param_x_name == 'mchirp' :
+                if param_y_name == 'q' :
+                    mass1 = mass1_from_mchirp_q(x_, y_)
+                    mass2 = mass2_from_mchirp_q(x_, y_)
+                else :
+                    mass1 = mass1_from_mchirp_q(x_, q_true)
+                    mass2 = mass2_from_mchirp_q(x_, q_true)
+                    cbc_params[param_y_name] = y_
+                cbc_params['mass1'] = mass1
+                cbc_params['mass2'] = mass2
+            
+            elif param_x_name == 'q' :
+                if param_y_name == 'mchirp' :
+                    mass1 = mass1_from_mchirp_q(y_, x_)
+                    mass2 = mass2_from_mchirp_q(y_, x_)
+                else :
+                    mass1 = mass1_from_mchirp_q(mchrip_true, x_)
+                    mass2 = mass2_from_mchirp_q(mchrip_true, x_)
+                    cbc_params[param_y_name] = y_
+                cbc_params['mass1'] = mass1
+                cbc_params['mass2'] = mass2
+            else : 
+                cbc_params[param_x_name] = x_
+                cbc_params[param_y_name] = y_
+            
             model.update(**cbc_params) #Modification du modèle 
             ll_ratio_grid_unit[i,j] = model.loglr #calcul du likelihood ratio
             k +=1 #Compteur du nombre d'itérations
