@@ -60,7 +60,7 @@ def convert_signal(file_name, epoch):
 #======================================================================================================
 
 
-def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = False, opti_params = False):
+def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = None, opti_params = False):
     """
     Compare the reconstructed signal and the original data in the time domain (plot).
 
@@ -111,7 +111,7 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
             round(para_opti[9],4),round(para_opti[10],4),round(para_opti[11],4)), horizontalalignment='center',
             verticalalignment='center', transform=ax1.transAxes,fontsize=12)
 
-    if reel_params :
+    if reel_params.any() != None :
         ax1.text(0.5, 0.3, r'Params_reels : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, coa_phase : {}.'.format(round(reel_params[0],3),
             round(reel_params[1],4), round(reel_params[2],4), round(reel_params[3],4), round(reel_params[4],4), round(reel_params[5],4), round(reel_params[6],4), round(reel_params[7],4),
             round(reel_params[8],4), round(reel_params[9],4), round(reel_params[10],4)), horizontalalignment='center',
@@ -140,7 +140,8 @@ def pycbc_to_gwpy(Pycbc_TimseSeries):
     ifos = ['E1', 'E2', 'E3']
     Gwpy_TimeSeries = {}
     for ifo in ifos :
-        Gwpy_TimeSeries[ifo] = TimeSeries(data = Pycbc_TimseSeries[ifo],times=Pycbc_TimseSeries[ifo].get_sample_times())
+        t0 = Pycbc_TimseSeries[ifo].start_time
+        Gwpy_TimeSeries[ifo] = TimeSeries(data = Pycbc_TimseSeries[ifo],times=Pycbc_TimseSeries[ifo].get_sample_times(),t0=t0)
     return Gwpy_TimeSeries
 
 def gwpy_to_pycbc(Gwpy_TimeSeries):
@@ -200,23 +201,27 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo):
 #======================================================================================================
 
 
-def qtrans(tsgwpy,frange,qrange,colorbar_limits = None):
+def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None):
     """
     Plot q-Transform of gwpy TimeSeries.
 
     Parameters
     ----------
     tsgwpy : Gwpy TimeSeries
-    colorbar_limits : numpy.array
-        Limits of the colorbar
+    frange : tuple
+        Range of frequencies analysed.
+    qrange : tuple
+        Range of q analysed.
+    colorbar_limits : dict (optional)
+        Dictionary containing the limits "inf" and "sup" of the colorbar.
+    fres : float (optional)
+        Frequency resoluation of the q_tranform.
+    tres : float (optional)
+        Time resolution of the q_transform.
     """
-    qtrans = tsgwpy.q_transform(frange=frange, qrange=qrange)
+    qtrans = tsgwpy.q_transform(frange=frange, qrange=qrange, fres=fres, tres=tres)
 
     plot = qtrans.plot(figsize=[8, 4])
-
-    if colorbar_limits.any() != None :
-        im = plot.get_images()[0]  # récupérer l'image affichée
-        im.set_clim(colorbar_limits[0], colorbar_limits[1])
 
     ax = plot.gca()
     #ax.set_ylim(5, 100)
@@ -224,4 +229,7 @@ def qtrans(tsgwpy,frange,qrange,colorbar_limits = None):
     ax.set_xscale('seconds')
     ax.set_yscale('log')
     ax.grid(True, axis='y', which='both')
-    ax.colorbar(cmap='viridis', label='Normalized energy')
+    if colorbar_limits != None :
+        ax.colorbar(cmap='viridis', label='Normalized energy', clim=(colorbar_limits['inf'], colorbar_limits['sup']))
+    else :
+        ax.colorbar(cmap='viridis', label='Normalized energy')

@@ -275,14 +275,27 @@ def plot_correlation(params_dataFrame,model,para_reels,cbc_params,save_fig):
 
 
 
-def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x,range_y,ech_x,ech_y,x_label,y_label,bounds_x = None, bounds_y = None ,save_fig = False):
+def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x,range_y,ech_x,ech_y,x_label,y_label,bounds_color=None,
+                              bounds_x = None, bounds_y = None ,save_fig = False, xticks = None, yticks = None):
 
     """
     2D plot of the correlation between 2 parameters of the signal.
 
     Parameters
     ----------
-    model : 
+    model : GaussianNoise
+    cbc_params : dict
+        Best parameters of the model.
+    bounds_x: dict (optional) :
+        Dicitionary for x bounds, "minx" and "maxx".
+    bounds_y : dict (optional) :
+        Dicitionary for y bounds, "miny" and "maxy".
+    bounds_color : dict (optional)
+        Dictionary for colorbar bounds, "vmin" and "vmax".
+    xticks : dict (optional) 
+        Doctionary to rename x axis, list "values" and list "labels".
+    yticks : dict (optional) 
+        Doctionary to rename y axis, list "values" and list "labels".
     
     Returns
     -------
@@ -300,13 +313,13 @@ def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x
     #====================================
 
 
-    if bounds_x.any() != None :
-        x_grid = np.arange(bounds_x[0], bounds_x[1], ech_x)
+    if bounds_x != None :
+        x_grid = np.arange(bounds_x["minx"], bounds_x["maxx"], ech_x)
     else : 
         x_grid = np.arange(cbc_params[param_x_name] - range_x, cbc_params[param_x_name] + range_x, ech_x)
 
-    if bounds_y.any() != None:
-        y_grid = np.arange(bounds_y[0], bounds_y[1], ech_y)
+    if bounds_y != None:
+        y_grid = np.arange(bounds_y["miny"], bounds_y["maxy"], ech_y)
     else : 
         y_grid = np.arange(cbc_params[param_y_name] - range_y, cbc_params[param_y_name] + range_y, ech_y)
 
@@ -337,16 +350,35 @@ def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x
     print(param_y_name + " = " + str(round(y_max,2)))
 
     plt.figure(figsize=(8, 6))
-    plt.imshow(ll_ratio_grid_unit.T,  # Transpose to align axes correctly
-            origin='lower',   # Make sure lower m1/m2 is at bottom-left
-            extent=[x_grid[0], x_grid[-1], y_grid[0], y_grid[-1]],
-            aspect='auto',    # Or use 'equal' if square pixels are desired
-            cmap='viridis')   # You can change colormap as desired
+
+    if bounds_color != None :
+        plt.imshow(ll_ratio_grid_unit.T,  # Transpose to align axes correctly
+                origin='lower',   # Make sure lower m1/m2 is at bottom-left
+                extent=[x_grid[0], x_grid[-1], y_grid[0], y_grid[-1]],
+                aspect='auto',    # Or use 'equal' if square pixels are desired
+                cmap='viridis',
+                vmin = bounds_color['vmin'],
+                vmax = bounds_color['vmin'])   # You can change colormap as desired
+    else :
+        plt.imshow(ll_ratio_grid_unit.T,  # Transpose to align axes correctly
+                origin='lower',   # Make sure lower m1/m2 is at bottom-left
+                extent=[x_grid[0], x_grid[-1], y_grid[0], y_grid[-1]],
+                aspect='auto',    # Or use 'equal' if square pixels are desired
+                cmap='viridis')   # You can change colormap as desired
+
     plt.scatter(x_max, y_max, marker='x', color='red', label='Maximum')
     plt.legend()
     plt.colorbar(label='Log-Likelihood Ratio')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
+
+    ax = plt.gca()
+    if xticks != None :
+        ax.set_xticks(xticks["values"])
+        ax.set_xticklabels(xticks["labels"])
+    if yticks != None :
+        ax.set_yticks(yticks["values"])
+        ax.set_yticklabels(yticks["labels"])
 
     if save_fig:
         plt.savefig(Nom + "_" + param_x_name + "_" + param_x_name)
