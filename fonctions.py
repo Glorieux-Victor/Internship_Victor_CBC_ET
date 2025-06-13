@@ -5,6 +5,7 @@ from gwpy.plot import Plot
 from gwpy.signal import filter_design
 import pandas as pd
 import numpy as np
+from scipy.optimize import curve_fit
 
 def puissance_seglen(seglen):
     k=seglen
@@ -198,7 +199,7 @@ def extraction_temps(indexes,type,print_):
     #Une "ref" correspond à l'indice du fichier "ET_data" qui nous permet d'y trouver le nom du fichier contenant les données que nous souhaitons regarder.
     #Une "ref_sup" est l'indice de fin de nos événement.
     def temps_ref(indexes):
-        ET_params = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', usecols = ['t0', 'tc', 'snr','type'], index_col = False)
+        ET_params = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
         ET_params = ET_params.sort_values('snr',ascending=False) #Sélectionne les events avec le meilleur SNR pour les indices les plus faibles.
         ET_params = ET_params[ET_params['type'] == type] #Sélectionne un type particulier d'événements.
         #print(ET_params)
@@ -218,7 +219,9 @@ def extraction_temps(indexes,type,print_):
             ref_sup.append(ref_s)
             t0_list.append(t0)
             tc_list.append(tc)
-        return ref_list,t0_list,tc_list, ref_sup
+
+            params_list = ET_params.iloc[ind]
+        return ref_list,t0_list,tc_list, ref_sup, params_list
 
     interval = [] #Contient True : signal sur un seul fichier, ou False : signal sur plusieurs fichiers.
     init=[] #Contient le nom des fichiers
@@ -241,7 +244,7 @@ def extraction_temps(indexes,type,print_):
                         interval.append(False)
                         #print('Il faut prendre un plus grand intervale.')
 
-    ref_list,t0_list,tc_list,ref_sup = temps_ref(indexes)
+    ref_list,t0_list,tc_list,ref_sup,params_list = temps_ref(indexes)
     for i in range(len(ref_list)):
         if print_ ==True:
             print('t0 :', t0_list[i])
@@ -250,7 +253,7 @@ def extraction_temps(indexes,type,print_):
 
     t0_list = [float(t0_list[i]) for i in range(len(t0_list))]
     tc_list = [float(tc_list[i]) for i in range(len(tc_list))]
-    return init, final, t0_list, tc_list, interval
+    return init, final, t0_list, tc_list, interval,params_list
 
 #======================================================================================================
 #======================================================================================================
@@ -314,3 +317,79 @@ def single_plot_spec_GW(path,channel,dossier_save,save,i,ind,type):
 # from gwpy.io.gwf import get_channel_names
 # channels = get_channel_names("/home/shared/et-mdc-frame-files/mdc1/v2/data/E1/E-E1_STRAIN_DATA-1000000000-2048.gwf")
 # print(channels)
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,show_fit=False):
+
+    """
+    Plot of the spectrogram of a signal to find the approximate chirpm and tc.
+
+    Parameters
+    ----------
+    tsgwpy_reel : Gwpy TimeSeries 
+        Gwpy TimeSeries of a reel signal.
+    ifo : str
+        "E1", "E2" or "E3" for the Einstein Telescope.
+    show_fit : bool (optional)
+        Print the plot of the spectrogram fit.
+    
+    Returns
+    -------
+    Dictionary containing the "mchrip" (in solar mass) and "tc" from the fit.
+    """
+
+    qtrans = tsgwpy_reel[ifo].q_transform(frange=(4, 100), qrange=(5, 30), fres=0.1, tres=0.01)
+
+    plot = qtrans.plot(figsize=[8, 4])
+
+    ax = plot.gca()
+    #ax.set_ylim(5, 100)
+    #ax.set_xlim(10, 12)
+    ax.set_xscale('seconds')
+    ax.set_yscale('log')
+    ax.grid(True, axis='y', which='both')
+    ax.colorbar(cmap='viridis', label='Normalized energy')
+
+    range_t = len(qtrans.times.value)
+    range_f = len(qtrans.frequencies.value)
+
+    #constants
+    G = 6.674e-11
+    c = 299792e3
+    M = 1.9884 * 10**30
+
+    def function(t, mchirp, tc): #def function to plot the spectrogram with mchirp and tc
+        tau = tc - t
+        return (1/np.pi) * (5/(256*tau))**(3/8) * ((G*mchirp)/(c**3))**(-5/8)
+
+    plt.figure()
+    y_ = []
+    x_ = []
+    freq_list = qtrans.frequencies.value
+    time_list = qtrans.times.value
+    for i in range(range_t) :
+        if qtrans.value[i,:].max() > 500 :
+            y_.append(freq_list[np.where(qtrans.value[i,:] == qtrans.value[i,:].max())[0][0]])
+            x_.append(time_list[i])
+
+    x_scaled = [i - x_[0] for i in x_] #Rescale of the time values to ease the fit.
+    popt, pcov = curve_fit(function, x_scaled, y_, p0 = np.array([20*M,10],dtype = 'float64'))
+
+    result = {"mchirp" : popt[0], "tc" : popt[1]+x_[0]}
+
+
+    if show_fit :
+        y_fit = []
+        for i,x in enumerate(x_):
+            y_fit.append(function(x,result["mchirp"],result["tc"]))
+        plt.figure()
+        plt.scatter(x_,y_,label = 'courbe',s=4)
+        plt.plot(x_,y_fit,label = 'fit',c='black')
+        plt.legend()
+    
+    result["mchirp"] = popt[0]/M
+
+    return result
