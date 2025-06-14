@@ -68,8 +68,8 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
     ----------
     maximized_params : DataFrame
         DataFrame from read_csv containing the maximized parameters from the maximization process.
-    reel_params : list (optional)
-        List containing the reel parameters if known.
+    reel_params : dict (optional)
+        Dictionary containing the reel parameters if known.
     opti_params : bool (optional)
         Print the optimized parameters.
     position : str
@@ -111,10 +111,10 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
             round(para_opti[9],4),round(para_opti[10],4),round(para_opti[11],4)), horizontalalignment='center',
             verticalalignment='center', transform=ax1.transAxes,fontsize=12)
 
-    if reel_params.any() != None :
-        ax1.text(0.5, 0.3, r'Params_reels : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, coa_phase : {}.'.format(round(reel_params[0],3),
-            round(reel_params[1],4), round(reel_params[2],4), round(reel_params[3],4), round(reel_params[4],4), round(reel_params[5],4), round(reel_params[6],4), round(reel_params[7],4),
-            round(reel_params[8],4), round(reel_params[9],4), round(reel_params[10],4)), horizontalalignment='center',
+    if reel_params != None :
+        ax1.text(0.5, 0.3, r'Params_reels : $t_c$ : {}, $m_1$ : {}, $m_2$ : {}, $d_L$ : {}, ra : {}, dec : {}, pola : {}, incl : {}, s1z : {}, s2z : {}, coa_phase : {}.'.format(round(reel_params['tc'],3),
+            round(reel_params['mass1'],4), round(reel_params['mass2'],4), round(reel_params['distance'],4), round(reel_params['ra'],4), round(reel_params['dec'],4), round(reel_params['polarization'],4), round(reel_params['inclination'],4),
+            round(reel_params['spin1z'],4), round(reel_params['spin2z'],4), round(reel_params['coa_phase'],4)), horizontalalignment='center',
             verticalalignment='center', transform=ax1.transAxes,fontsize=12)
 
     ax1.legend(fontsize=20)
@@ -182,7 +182,7 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo):
     #Calcul des psd
     psd_opti = tsgwpy_opti_cut[ifo].psd()
     psd_reel = tsgwpy_reel_cut[ifo].psd()
-    psd_res = psd_reel - psd_opti
+    psd_res = tsgwpy_res[ifo].psd()
 
     plt.figure()
     ax = plt.gca()
