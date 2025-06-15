@@ -1,1 +1,0 @@
-,mloglik,tc,mass1,mass2,distance,ra,dec,polarization,inclination,spin1z,spin2z,chirp,q
