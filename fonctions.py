@@ -216,7 +216,7 @@ def extraction_temps(indexes,type,source,print_):
 
     if source == "IJCLab_server" :
         ET = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt",sep = '  ',engine='python')
-    if source == "local" :
+    elif source == "local" :
         ET = pd.read_csv('/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt',sep = '  ',engine='python')
     else :
         print("Erreur : veuillez rentrer \"local\" ou \"IJCLab_server\" pour le paramètre source.")
@@ -423,5 +423,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,show_fit=False):
         plt.legend()
     
     result["mchirp"] = popt[0]/M
+    result["u_mchirp"] = np.sqrt(pcov[0,0])/M
+    result["u_tc"] = np.sqrt(pcov[1,1])
 
     return result

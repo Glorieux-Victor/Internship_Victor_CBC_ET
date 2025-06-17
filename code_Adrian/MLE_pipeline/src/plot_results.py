@@ -4,6 +4,7 @@ from generate_data import generate_frequency_domain_signal
 from gwpy.timeseries import TimeSeries
 from pycbc.types import TimeSeries as PycbcTimeSeries
 import pandas as pd
+import numpy as np
 
 
 #======================================================================================================
@@ -60,7 +61,7 @@ def convert_signal(file_name, epoch):
 #======================================================================================================
 
 
-def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = None, opti_params = False):
+def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = None, opti_params = False, source="internship"):
     """
     Compare the reconstructed signal and the original data in the time domain (plot).
 
@@ -72,6 +73,8 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
         Dictionary containing the reel parameters if known.
     opti_params : bool (optional)
         Print the optimized parameters.
+    source : str (optional)
+        Choose "MLE_pipeline" to use data from the pickle file.
     position : str
         "Front" or "Back" depending which part of the signal we want to look.
     reconstructed_signal_tdomain : dict, Pycbc TimeSeries
@@ -80,23 +83,31 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
     ifo : str
         "E1", "E2" or "E3" for the Einstein Telescope.
     
+    
     Returns
     -------
     Plot of the comparison between both signals : the reconstructed ans the real one.
     """
-
-    mchirp_true = maximized_params['chirp'].values[0]
-    q_true = maximized_params['q'].values[0]
-    para_opti = [0, maximized_params['tc'].values[0],  mass1_from_mchirp_q(mchirp_true, q_true),  mass2_from_mchirp_q(mchirp_true, q_true),
-                maximized_params['distance'].values[0], maximized_params['ra'].values[0], maximized_params['dec'].values[0],  maximized_params['polarization'].values[0], maximized_params['inclination'].values[0],
-                maximized_params['spin1z'].values[0],  maximized_params['spin2z'].values[0], maximized_params['coa_phase'].values[0]]
+    if source == 'MLE_pipeline':
+        para_opti = [0, maximized_params['tc'], maximized_params['mass1'],  maximized_params['mass2'],
+                    maximized_params['distance'], maximized_params['ra'], maximized_params['dec'],  maximized_params['polarization'], maximized_params['inclination'],
+                    maximized_params['spin1z'],  maximized_params['spin2z'], maximized_params['coa_phase']]
+    else :
+        mchirp_true = maximized_params['chirp'].values[0]
+        q_true = maximized_params['q'].values[0]
+        para_opti = [0, maximized_params['tc'].values[0],  mass1_from_mchirp_q(mchirp_true, q_true),  mass2_from_mchirp_q(mchirp_true, q_true),
+                    maximized_params['distance'].values[0], maximized_params['ra'].values[0], maximized_params['dec'].values[0],  maximized_params['polarization'].values[0], maximized_params['inclination'].values[0],
+                    maximized_params['spin1z'].values[0],  maximized_params['spin2z'].values[0], maximized_params['coa_phase'].values[0]]
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12), sharex=True, gridspec_kw={'height_ratios': [3, 1]})
 
     # Tracer les deux signaux dans le premier axe :
     ax1.plot(reconstructed_signal_tdomain[ifo].get_sample_times(),reconstructed_signal_tdomain[ifo],label= 'Reconstructed signal (' + ifo + ')', zorder = 2)
     if position == "Front" :
-        ax1.set_xlim(maximized_params['tc'].values[0] - 3, maximized_params['tc'].values[0] + 0.5)
+        if source == "MLE_pipeline" :
+            ax1.set_xlim(maximized_params['tc'] - 3, maximized_params['tc'] + 0.5)
+        else :
+            ax1.set_xlim(maximized_params['tc'].values[0] - 3, maximized_params['tc'].values[0] + 0.5)
     elif position == "Back" :
         ax1.set_xlim(data[ifo].end_time - 10, data[ifo].end_time - 6)
 
@@ -155,7 +166,7 @@ def gwpy_to_pycbc(Gwpy_TimeSeries):
     return Pycbc_TimeSeries
 
 
-def comparison_freq(opti_cut,reel_cut,residual,ifo):
+def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False):
 
     """
     Convert the pycbc TimeSeries into gwpy TimeSeries to ease the calculation of the psds.
@@ -168,11 +179,17 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo):
     residual : Pycbc TimeSeries
     ifo : str
         "E1", "E2" or "E3" for the Einstein Telescope.
+    average_noise : dict
+        'status' (bool) and 'ech' (int).
+        Print the average noise to compare with the nominal noise PSD from ET.
+    noisePSD : bool (optional)
+        Initial False, if True print the nominal noise PSD from ET.
 
     Returns
     -------
     Plot of the comparison between both signals : the reconstructed ans the real one.
     """
+
 
     #Conversion en TimesSeries de gwpy pour le calcul du psd avec .psd().
     tsgwpy_opti_cut = pycbc_to_gwpy(opti_cut)
@@ -184,16 +201,33 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo):
     psd_reel = tsgwpy_reel_cut[ifo].psd()
     psd_res = tsgwpy_res[ifo].psd()
 
-    plt.figure()
+    plt.figure(figsize=(8,5))
     ax = plt.gca()
     ax.loglog(psd_opti.frequencies, psd_opti, label= 'Reconstructed signal (' + ifo + ')',zorder=3)
     ax.loglog(psd_reel.frequencies, psd_reel, label= 'MDC data (' + ifo + ')',zorder=2)
     ax.loglog(psd_res.frequencies, psd_res, label= 'Residual',zorder = 1)
-    ax.set_ylim(1e-53, 1e-44)
+    ax.set_ylim(1e-52, 1e-42)
     ax.set_xlim(4, 2048)
-    ax.legend()
     ax.set_xlabel('Frequency [Hz]')
     ax.set_ylabel('PSD [1/Hz]')
+
+    if noisePSD :
+        ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
+        ax.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD')
+    
+    if average_noise['status'] :
+        psd_res_av = []
+        freq_av = []
+        ech = average_noise['ech']
+        freq = psd_res.frequencies.value
+        psd = psd_res.value
+        N = len(freq)//20
+        for i in range(N):
+            psd_res_av.append( (np.sum(np.array([psd[j + ech*i] for j in range(ech)]))) /ech)
+            freq_av.append( (np.sum(np.array([freq[j + ech*i] for j in range(ech)]))) /ech)
+        ax.loglog(freq_av,psd_res_av,label = 'Average residual')
+    
+    ax.legend()
 
 
 #======================================================================================================
