@@ -6,6 +6,7 @@ from gwpy.signal import filter_design
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
+import sys
 
 def puissance_seglen(seglen):
     k=seglen
@@ -185,21 +186,52 @@ def signal_GW(hfilt,number,dossier_save,t_start,t_stop,save):
 #======================================================================================================
 #======================================================================================================
 
-#==============================================================================
-#Permet de déterminer, à partir du fichier de données "list_mdc1.txt", le nom de l'observations (temps dans les données présentes sur le serveur IJCLab) associé
-#à l'événement de type sélectionné qui a le SNR le plus grand. La liste indexes nons permet de délectionner plusieurs signaux qui ont le plus grand SNR.
-def extraction_temps(indexes,type,print_):
+
+def extraction_temps(indexes,type,source,print_):
+
+    """
+    Extract time parameters (tc, t0) of the GW signals using the file "list_mdc1_v2.txt".
+    Indices are classified by decreasing SNR. The index 0 is the highest SNR for the type considered.
+    In addition, return the time references to extract the signals from the MDC data on the IJCLab server.
+
+    Parameters
+    ----------
+    indexes : list
+        List containing the indices of the signals we want to analyse.
+    type : int
+        1 : NS/NS, 2 : BH/NS, 3 : BH/BH coalescence (Neutron Star and Black Hole).
+    source: str
+        Environment where the code is executed, "local" or "IJCLab_server".
+
+    Returns
+    -------
+    init, stop : start and stop file references.
+    t0_list, tc_list
+    interval
+    params_list
+    """
 
     #Extraction du fichier qui contient le nom des observations du MDC présentes sur le serveur de l'IJCLab
     cols = ["col1","col2","col3"]
-    ET = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt",sep = '  ',engine='python')
+
+    if source == "IJCLab_server" :
+        ET = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt",sep = '  ',engine='python')
+    if source == "local" :
+        ET = pd.read_csv('/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt',sep = '  ',engine='python')
+    else :
+        print("Erreur : veuillez rentrer \"local\" ou \"IJCLab_server\" pour le paramètre source.")
+        sys.exit()
 
     #Ce code permet d'extraire les refs, t0 et tc des événements d'onde GW que nous voulons regarder.
     #Nous listons les indices des évenements dans "indexes" et nous regardons en priorité les événements avec le meilleur SNR.
     #Une "ref" correspond à l'indice du fichier "ET_data" qui nous permet d'y trouver le nom du fichier contenant les données que nous souhaitons regarder.
     #Une "ref_sup" est l'indice de fin de nos événement.
-    def temps_ref(indexes):
-        ET_params = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
+    def temps_ref(indexes,source=source):
+        if source == 'IJCLab_server' :
+            ET_params = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
+        elif source == 'local' :
+            ET_params = pd.read_csv("/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
+
         ET_params = ET_params.sort_values('snr',ascending=False) #Sélectionne les events avec le meilleur SNR pour les indices les plus faibles.
         ET_params = ET_params[ET_params['type'] == type] #Sélectionne un type particulier d'événements.
         #print(ET_params)
@@ -322,7 +354,7 @@ def single_plot_spec_GW(path,channel,dossier_save,save,i,ind,type):
 #======================================================================================================
 #======================================================================================================
 
-def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,show_fit=False):
+def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,show_fit=False):
 
     """
     Plot of the spectrogram of a signal to find the approximate chirpm and tc.
@@ -371,7 +403,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,show_fit=False):
     freq_list = qtrans.frequencies.value
     time_list = qtrans.times.value
     for i in range(range_t) :
-        if qtrans.value[i,:].max() > 500 :
+        if qtrans.value[i,:].max() > q_lim :
             y_.append(freq_list[np.where(qtrans.value[i,:] == qtrans.value[i,:].max())[0][0]])
             x_.append(time_list[i])
 

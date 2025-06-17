@@ -286,9 +286,9 @@ def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x
     model : GaussianNoise
     cbc_params : dict
         Best parameters of the model.
-    bounds_x: dict (optional) :
+    bounds_x: dict (optional)
         Dicitionary for x bounds, "minx" and "maxx".
-    bounds_y : dict (optional) :
+    bounds_y : dict (optional)
         Dicitionary for y bounds, "miny" and "maxy".
     bounds_color : dict (optional)
         Dictionary for colorbar bounds, "vmin" and "vmax".
@@ -378,13 +378,13 @@ def plot_correlation_2_params(model,cbc_params,param_x_name,param_y_name,range_x
     plt.figure(figsize=(8, 6))
 
     if bounds_color != None :
-        plt.imshow(ll_ratio_grid_unit.T,  # Transpose to align axes correctly
+        plot = plt.imshow(ll_ratio_grid_unit.T,  # Transpose to align axes correctly
                 origin='lower',   # Make sure lower m1/m2 is at bottom-left
                 extent=[x_grid[0], x_grid[-1], y_grid[0], y_grid[-1]],
                 aspect='auto',    # Or use 'equal' if square pixels are desired
                 cmap='viridis',
-                vmin = bounds_color['vmin'],
-                vmax = bounds_color['vmin'])   # You can change colormap as desired
+                vmin = bounds_color['inf'],
+                vmax = bounds_color['sup'])   # You can change colormap as desired
     else :
         plt.imshow(ll_ratio_grid_unit.T,  # Transpose to align axes correctly
                 origin='lower',   # Make sure lower m1/m2 is at bottom-left
