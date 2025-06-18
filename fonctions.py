@@ -6,6 +6,8 @@ from gwpy.signal import filter_design
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
+import pycbc.psd.analytical as detector_psd
+from pycbc.detector import Detector
 import sys
 
 def puissance_seglen(seglen):
@@ -427,3 +429,67 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,show_fit=False):
     result["u_tc"] = np.sqrt(pcov[1,1])
 
     return result
+
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+def instruments_PSD(instruments_dict,ET_MDC=False):
+
+    """
+    PSD plots of the different GW detection instruments from pycbc.psd.analytical.
+
+    Parameters
+    ----------
+    instruments_dict : dict
+        Dictionary containing the chosen name of the instrument and the method
+        e.g. 'aLigo' : 'aLIGOAPlusDesignSensitivityT1800042'
+    ET_MDC : bool
+        Plot the ET nominal noise PSD used for the MDC.
+    
+    """
+
+    for key, value in instruments_dict.items() :
+        data = getattr(detector_psd, value)(length=200000, delta_f=1./100, low_freq_cutoff=4)
+        plt.loglog(data.get_sample_frequencies(),data,label = key)
+
+    if ET_MDC :
+        ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
+        plt.loglog(ET10km['frequencies'],ET10km['C'],label = 'ET (from file)')
+
+    plt.xlim(4,1000)
+    plt.ylim(10e-51,10e-35)
+    plt.xlabel(r'Frequency [Hz]')
+    plt.ylabel(r'PSD [1/Hz]')
+    plt.tight_layout
+    plt.legend()
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+#from pycbc.detector import Detector
+def antenna_factors(detectors,params):
+    """
+    Calculation of the antenna factors of a detector for a given signal.
+
+    Parameters
+    ----------
+    detectors : list, str
+        List of the detectors e.g. 'E1', 'H1', ...
+    params : dict
+        Dictionary containing the parameters of the signal.
+        'ra', 'dec', 'polarization' and 'tc' are required.
+    
+    Returns
+    -------
+    Dictionary with fp and another with fx for each detector.
+    """
+    
+    fp = {}
+    fx = {}
+    for ifo in detectors : 
+        fp[ifo], fx[ifo] = Detector(ifo).antenna_pattern(params['ra'], params['dec'], params["polarization"], params['tc'])
+    
+    return fp, fx

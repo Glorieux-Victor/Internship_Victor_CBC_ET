@@ -131,7 +131,32 @@ def generate_time_series_from_frequency_series(frequency_series, tc):
 
 
 
-def generation_signal_GW(cbc_params,sample_rate,fmin,noise,print_snr):
+def generation_signal_GW(cbc_params,sample_rate,fmin,noise = False ,print_snr = False):
+
+    """
+    Generate a Pycbc GW signal from the ET using GaussianNoise model.
+
+    Parameters
+    ----------
+    cbc_params : dict
+        Dictionary containing the parameters of the cbc.
+    sample_rate : int
+        Power of 2 wich samples the signal.
+    fmin : int
+        Minimal frequency of the signal.
+    noise : bool (optional)
+        Add gaussian noise to the signal.
+    print_snr : bool (optional)
+        Print detectors SNR and loglr.
+
+
+    Returns
+    -------
+    The GaussianNoise model.
+    The value of the log_noise_likelihood_from_SNR.
+    The signal.
+
+    """
 
     #mieux en prenant une puissance de 2 la plus proche
     seglen = round(tau0_from_mass1_mass2(cbc_params['mass1'],cbc_params['mass2'],fmin))
