@@ -9,6 +9,7 @@ from scipy.optimize import curve_fit
 import pycbc.psd.analytical as detector_psd
 from pycbc.detector import Detector
 import sys
+from plot_results import convert_signal, comparison_signals, comparison_freq, qtrans_plot, gwpy_to_pycbc, pycbc_to_gwpy
 
 def puissance_seglen(seglen):
     k=seglen
@@ -356,7 +357,8 @@ def single_plot_spec_GW(path,channel,dossier_save,save,i,ind,type):
 #======================================================================================================
 #======================================================================================================
 
-def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,show_fit=False):
+def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,colorbar_limits = None,frange=(4, 100),qrange=(5, 30),
+                              fres=0.1, tres=0.01,show_fit=False):
 
     """
     Plot of the spectrogram of a signal to find the approximate chirpm and tc.
@@ -367,15 +369,21 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,show_fit=False):
         Gwpy TimeSeries of a reel signal.
     ifo : str
         "E1", "E2" or "E3" for the Einstein Telescope.
+    q_lim : int
+        The plot of the q-trasform is made only with the point over this limit.
+    colorbar_limits : dict (optional)
+        Dictionary containing the limits "inf" and "sup" of the colorbar.
     show_fit : bool (optional)
         Print the plot of the spectrogram fit.
+    frange, qrange, fres, tres :
+        Parameters of a traditional q-transform, set initialy to the best ones for a BBH.
     
     Returns
     -------
     Dictionary containing the "mchrip" (in solar mass) and "tc" from the fit.
     """
 
-    qtrans = tsgwpy_reel[ifo].q_transform(frange=(4, 100), qrange=(5, 30), fres=0.1, tres=0.01)
+    qtrans = tsgwpy_reel[ifo].q_transform(frange=frange, qrange=qrange, fres=fres, tres=tres)
 
     plot = qtrans.plot(figsize=[8, 4])
 
@@ -385,7 +393,10 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,show_fit=False):
     ax.set_xscale('seconds')
     ax.set_yscale('log')
     ax.grid(True, axis='y', which='both')
-    ax.colorbar(cmap='viridis', label='Normalized energy')
+    if colorbar_limits != None :
+        ax.colorbar(cmap='viridis', label='Normalized energy', clim=(colorbar_limits['inf'], colorbar_limits['sup']))
+    else :
+        ax.colorbar(cmap='viridis', label='Normalized energy')
 
     range_t = len(qtrans.times.value)
     range_f = len(qtrans.frequencies.value)
@@ -456,7 +467,7 @@ def instruments_PSD(instruments_dict,ET_MDC=False):
 
     if ET_MDC :
         ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
-        plt.loglog(ET10km['frequencies'],ET10km['C'],label = 'ET (from file)')
+        plt.loglog(ET10km['frequencies'],ET10km['C'],label = 'ET (10km)')
 
     plt.xlim(4,1000)
     plt.ylim(10e-51,10e-35)
@@ -493,3 +504,66 @@ def antenna_factors(detectors,params):
         fp[ifo], fx[ifo] = Detector(ifo).antenna_pattern(params['ra'], params['dec'], params["polarization"], params['tc'])
     
     return fp, fx
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+def comparison_signals_params(model,dict_param, cbc_params, ifos = ['E1','E2','E3']):
+    """
+    Comparison of a same signal with different parameters.
+
+    Parameters
+    ----------
+    model : MDCGaussianNoise
+        MDCGaussianNoise model of GW.
+    dict_param : dict
+        Dictionary containing the parameter which is changed with the wanted values.
+        e.g. dict_params = {'param' : 'mass1', 'A' : 100, 'B' : 20, 'C' : 5}.
+    cbc_params : dict
+        Dictionary containing the parameters of the cbc.
+    
+    Returns
+    -------
+    Dictionary with fp and another with fx for each detector.
+    """
+    fig_ts = plt.figure()
+    ax_ts = fig_ts.gca()
+    fig_fs = plt.figure()
+    ax_fs = fig_fs.gca()
+
+    for key, val in dict_param.items():
+        if key == 'param' :
+            continue
+        else :
+            cbc_params[dict_param['param']] = val
+            model.maximized_params = cbc_params
+            reconstructed_signal_fdomain, reconstructed_signal_tdomain = model.reconstruct_signal()
+            for ifo in ifos :
+                tc=cbc_params['tc']
+                t_end = reconstructed_signal_tdomain[ifo].get_sample_times()[-1]
+                reconstructed_signal_tdomain[ifo] = reconstructed_signal_tdomain[ifo].cyclic_time_shift(t_end - tc - 0.2)
+                reconstructed_signal_fdomain[ifo] = reconstructed_signal_tdomain[ifo].to_frequencyseries()
+            
+            ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+
+            tsgwpy = pycbc_to_gwpy(reconstructed_signal_tdomain)
+            psd_gwpy = tsgwpy['E1'].psd()
+            ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+
+
+    ax_ts.set_xlabel('Time [s]')
+    ax_ts.set_ylabel('Relative strain')
+    ax_ts.set_xlim(tc - 0.3,tc + 0.05)
+    ax_ts.legend()
+
+    ax_fs.set_xlabel('Frequency [Hz]')
+    ax_fs.set_ylabel('PSD [1/Hz]')
+    ax_fs.set_xlim(4,1000)
+    ax_fs.set_ylim(10e-55,10e-44)
+    ax_fs.legend()
+    
+    ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
+    ax_fs.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD')
+
+    plt.tight_layout
