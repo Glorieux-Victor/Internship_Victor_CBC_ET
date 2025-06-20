@@ -3,6 +3,7 @@ from gwpy.frequencyseries import FrequencySeries
 from matplotlib import pyplot as plt
 from gwpy.plot import Plot
 from gwpy.signal import filter_design
+from IPython.display import clear_output
 import pandas as pd
 import numpy as np
 import copy
@@ -595,7 +596,7 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
     q_true = q_from_mass1_mass2(true_params['mass1'],true_params['mass2'])
 
     def plot_lik(axs_list,label_x,data_x,true_params,param_min,param_max,echantill,nb_graphs,q):
-
+        clear_output(wait=True)
         ax = axs_list[data_x]
 
         model.update(**true_params)
@@ -603,7 +604,7 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
 
         x_grid = np.arange(param_min[data_x],param_max[data_x],echantill[data_x])
         y_grid = np.zeros(len(x_grid))
-        print("Iterations totales : ",len(x_grid)*len(y_grid))
+        print("Iterations totales : ",len(y_grid))
         k=0
         for i, x_ in enumerate(x_grid):
             if data_x == 'mass1' :
@@ -630,31 +631,33 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
             print ("Plot : {}/{}, iteration : {}".format(q,nb_graphs,k), end="\r")
 
         ax.plot(x_grid,y_grid,label = r"-log($\mathcal{L}$)")
+
         if data_x == 'mass1' :
-            ax.set_xlabel('M_chirp')
+            ax.set_xlabel(r'M chirp',fontsize = 30)
             ax.axvline(mchirp_true,color = 'red',label = 'True param')
         elif data_x == 'mass2' :
-            ax.set_xlabel('q')
+            ax.set_xlabel('q',fontsize = 30)
             ax.axvline(q_true,color = 'red',label = 'True param')
+            ax.axvline(1/q_true,color = 'red',label = '1/q',ls = '--')
         else :
-            ax.set_xlabel(label_x[data_x])
+            ax.set_xlabel(label_x[data_x],fontsize = 30)
             ax.axvline(true_params[data_x],color = 'red',label = 'True param')
-            ax.legend()
+        ax.tick_params(labelsize = 20)
+        ax.legend(fontsize = 25)
     
     fig_lik, axs = plt.subplots(nrows=3, ncols=4, figsize = (40,20))
 
     axs_list = {'tc' : axs[0,0], 'mass1' : axs[0,1], 'mass2' : axs[0,2], 'distance'  : axs[0,3], 'ra'    : axs[1,0], 'dec' : axs[1,1], 'polarization' : axs[1,2], 'inclination' : axs[1,3], 'spin1z' : axs[2,0], 'spin2z'  : axs[2,1], 'coa_phase'  : axs[2,2]}
-    label_x = {'tc'  : r'$t_c$', 'mass1' : r'$m_1$', 'mass2' : r'$m_2$',  'distance' : r'distance', 'ra' : r'ra', 'dec'    : r'dec', 'polarization'   : r'pola', 'inclination'  : r'incl', 'spin1z'  : r's_{1z}', 'spin2z' : r's_{2z}', 'coa_phase' : r'phase_{coa}'}
+    label_x = {'tc'  : r'$t_c$', 'mass1' : r'$m_1$', 'mass2' : r'$m_2$',  'distance' : r'distance', 'ra' : r'ra', 'dec'    : r'dec', 'polarization'   : r'polarization', 'inclination'  : r'inclination', 'spin1z'  : r'$\text{spin}_{1z}$', 'spin2z' : r'$\text{spin}_{2z}$', 'coa_phase' : r'phase coalescence'}
     data_x = ['tc',   'mass1',    'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z', 'coa_phase']
-    param_min = {'tc' : true_params['tc'] - 1,'mass1' :   mchirp_true - 5,'mass2' :   0.2,'distance'  :     100,'ra' :        0,'dec' :   -np.pi/2,'polarization' :        0,'inclination' :       0,'spin1z' :    -1,'spin2z' :   -1,'coa_phase' : 0}
-    param_max = {'tc' : true_params['tc'] + 1,'mass1' :  mchirp_true + 5,'mass2' :      3,'distance'  :   10000,'ra' :  2*np.pi,'dec' :    np.pi/2,'polarization' :  2*np.pi,'inclination' :   np.pi,'spin1z' :     1,'spin2z' :    1,'coa_phase' : 2*np.pi}
-    echantill = {'tc' : 0.005,'mass1' :   0.01,'mass2' : 0.005,'distance'  :     50,'ra' :    0.05,'dec' :     0.05,'polarization' :     0.05,'inclination' :    0.05,'spin1z' :  0.01,'spin2z' : 0.01,'coa_phase' : 0.05}
+    param_min = {'tc' : true_params['tc'] - 0.5,'mass1' :   mchirp_true - 2,'mass2' :   0.2,'distance'  :     true_params['distance'] - 200,'ra' :        0,'dec' :   -np.pi/2,'polarization' :        0,'inclination' :       0,'spin1z' :    -1,'spin2z' :   -1,'coa_phase' : 0}
+    param_max = {'tc' : true_params['tc'] + 0.5,'mass1' :  mchirp_true + 2,'mass2' :      3,'distance'  :   true_params['distance'] + 200,'ra' :  2*np.pi,'dec' :    np.pi/2,'polarization' :  2*np.pi,'inclination' :   np.pi,'spin1z' :     1,'spin2z' :    1,'coa_phase' : 2*np.pi}
+    echantill = {'tc' : 0.0005,'mass1' :   0.01,'mass2' : 0.005,'distance'  :     1,'ra' :    0.01,'dec' :     0.01,'polarization' :     0.01,'inclination' :    0.01,'spin1z' :  0.01,'spin2z' : 0.01,'coa_phase' : 0.01}
 
     nb_graphs = len(data_x)
 
     q=0
-    #for i in range(len(data_x)):
-    for i in range(1):
+    for i in range(nb_graphs ):
         q += 1
         plot_lik(axs_list,label_x,data_x[i],true_params,param_min,param_max,echantill,nb_graphs = nb_graphs,q=q)
     
