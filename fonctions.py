@@ -5,9 +5,11 @@ from gwpy.plot import Plot
 from gwpy.signal import filter_design
 import pandas as pd
 import numpy as np
+import copy
 from scipy.optimize import curve_fit
 import pycbc.psd.analytical as detector_psd
 from pycbc.detector import Detector
+from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 import sys
 from plot_results import convert_signal, comparison_signals, comparison_freq, qtrans_plot, gwpy_to_pycbc, pycbc_to_gwpy
 
@@ -567,3 +569,96 @@ def comparison_signals_params(model,dict_param, cbc_params, ifos = ['E1','E2','E
     ax_fs.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD')
 
     plt.tight_layout
+
+
+#===============================================================================================================================================
+#===============================================================================================================================================
+#===============================================================================================================================================
+
+
+def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False):
+    """
+    Plot of the likelihood ratio for all the parameters used during the maxmimization process, giving a GW model.
+
+    Parameters
+    ----------
+    model : MDCGaussianNoise
+        MDCGaussianNoise model of GW.
+    true_params : dict
+        Dictionary containing the true parameter of the signal : the best loglr parameters.
+    fig_name : str (optional)
+    save_fig : bool (optional)
+    
+    """
+
+    mchirp_true = mchirp_from_mass1_mass2(true_params['mass1'],true_params['mass2'])
+    q_true = q_from_mass1_mass2(true_params['mass1'],true_params['mass2'])
+
+    def plot_lik(axs_list,label_x,data_x,true_params,param_min,param_max,echantill,nb_graphs,q):
+
+        ax = axs_list[data_x]
+
+        model.update(**true_params)
+        params_modif =  copy.deepcopy(true_params)
+
+        x_grid = np.arange(param_min[data_x],param_max[data_x],echantill[data_x])
+        y_grid = np.zeros(len(x_grid))
+        print("Iterations totales : ",len(x_grid)*len(y_grid))
+        k=0
+        for i, x_ in enumerate(x_grid):
+            if data_x == 'mass1' :
+                mass1 = mass1_from_mchirp_q(mchirp=x_,q=q_true)
+                mass2 = mass2_from_mchirp_q(mchirp=x_,q=q_true)
+                params = {'mass1' : mass1, 'mass2' : mass2}
+                params_modif.update(params)
+                model.update(**params_modif)
+                y_grid[i]=-model.loglr
+            elif data_x == 'mass2' :
+                mass1 = mass1_from_mchirp_q(mchirp=mchirp_true,q=x_)
+                mass2 = mass2_from_mchirp_q(mchirp=mchirp_true,q=x_)
+                params = {'mass1' : mass1, 'mass2' : mass2}
+                params_modif.update(params)
+                model.update(**params_modif)
+                y_grid[i]=-model.loglr
+            else :
+                params = {data_x : x_} #Les paramètres que l'on souhaite modifier sur le modèle de notre GW
+                params_modif.update(params)
+                model.update(**params_modif) #Modification du modèle 
+                y_grid[i]=-model.loglr
+
+            k +=1
+            print ("Plot : {}/{}, iteration : {}".format(q,nb_graphs,k), end="\r")
+
+        ax.plot(x_grid,y_grid,label = r"-log($\mathcal{L}$)")
+        if data_x == 'mass1' :
+            ax.set_xlabel('M_chirp')
+            ax.axvline(mchirp_true,color = 'red',label = 'True param')
+        elif data_x == 'mass2' :
+            ax.set_xlabel('q')
+            ax.axvline(q_true,color = 'red',label = 'True param')
+        else :
+            ax.set_xlabel(label_x[data_x])
+            ax.axvline(true_params[data_x],color = 'red',label = 'True param')
+            ax.legend()
+    
+    fig_lik, axs = plt.subplots(nrows=3, ncols=4, figsize = (40,20))
+
+    axs_list = {'tc' : axs[0,0], 'mass1' : axs[0,1], 'mass2' : axs[0,2], 'distance'  : axs[0,3], 'ra'    : axs[1,0], 'dec' : axs[1,1], 'polarization' : axs[1,2], 'inclination' : axs[1,3], 'spin1z' : axs[2,0], 'spin2z'  : axs[2,1], 'coa_phase'  : axs[2,2]}
+    label_x = {'tc'  : r'$t_c$', 'mass1' : r'$m_1$', 'mass2' : r'$m_2$',  'distance' : r'distance', 'ra' : r'ra', 'dec'    : r'dec', 'polarization'   : r'pola', 'inclination'  : r'incl', 'spin1z'  : r's_{1z}', 'spin2z' : r's_{2z}', 'coa_phase' : r'phase_{coa}'}
+    data_x = ['tc',   'mass1',    'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z', 'coa_phase']
+    param_min = {'tc' : true_params['tc'] - 1,'mass1' :   mchirp_true - 5,'mass2' :   0.2,'distance'  :     100,'ra' :        0,'dec' :   -np.pi/2,'polarization' :        0,'inclination' :       0,'spin1z' :    -1,'spin2z' :   -1,'coa_phase' : 0}
+    param_max = {'tc' : true_params['tc'] + 1,'mass1' :  mchirp_true + 5,'mass2' :      3,'distance'  :   10000,'ra' :  2*np.pi,'dec' :    np.pi/2,'polarization' :  2*np.pi,'inclination' :   np.pi,'spin1z' :     1,'spin2z' :    1,'coa_phase' : 2*np.pi}
+    echantill = {'tc' : 0.005,'mass1' :   0.01,'mass2' : 0.005,'distance'  :     50,'ra' :    0.05,'dec' :     0.05,'polarization' :     0.05,'inclination' :    0.05,'spin1z' :  0.01,'spin2z' : 0.01,'coa_phase' : 0.05}
+
+    nb_graphs = len(data_x)
+
+    q=0
+    #for i in range(len(data_x)):
+    for i in range(1):
+        q += 1
+        plot_lik(axs_list,label_x,data_x[i],true_params,param_min,param_max,echantill,nb_graphs = nb_graphs,q=q)
+    
+    fig_lik.tight_layout()
+
+    if save_fig :
+        plt.savefig(fig_name)
