@@ -166,7 +166,7 @@ def gwpy_to_pycbc(Gwpy_TimeSeries):
     return Pycbc_TimeSeries
 
 
-def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False):
+def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False,save_fig = False):
 
     """
     Convert the pycbc TimeSeries into gwpy TimeSeries to ease the calculation of the psds.
@@ -228,6 +228,9 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
         ax.loglog(freq_av,psd_res_av,label = 'Average residual')
     
     ax.legend()
+
+    if save_fig : 
+        plt.savefig('comparison_freq')
 
 
 #======================================================================================================
