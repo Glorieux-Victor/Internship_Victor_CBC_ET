@@ -61,7 +61,7 @@ def convert_signal(file_name, epoch):
 #======================================================================================================
 
 
-def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = None, opti_params = False, source="internship"):
+def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, residual, ifo, position = None, save_fig = False, reel_params = None, opti_params = False, source='Internship_Victor_CBC_ET',infos = None):
     """
     Compare the reconstructed signal and the original data in the time domain (plot).
 
@@ -75,6 +75,9 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
         Print the optimized parameters.
     source : str (optional)
         Choose "MLE_pipeline" to use data from the pickle file.
+    infos : dict (optional, use only if source == 'MLE_pipeline')
+        Infiormations about our analysis
+        e.g. times = {'t_start' : t_start, 't_end' : t_end, 'index' : study_index, 'type' : study_type}
     position : str
         "Front" or "Back" depending which part of the signal we want to look.
     reconstructed_signal_tdomain : dict, Pycbc TimeSeries
@@ -139,8 +142,12 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
     ax2.tick_params(labelsize = 18)
 
     plt.tight_layout()
+
     if save_fig :
-        plt.savefig('Full_loc_minim_' + ifo + '_Comparaison_signal')
+        if source == 'MLE_pipeline':
+            plt.savefig('../results/output_' + format(infos.t_start, ".0f") + '-' + format(infos.t_end, ".0f") + '/comparison_signal')
+        else :
+            plt.savefig('comparaison_signal')
 
 
 #======================================================================================================
@@ -166,7 +173,7 @@ def gwpy_to_pycbc(Gwpy_TimeSeries):
     return Pycbc_TimeSeries
 
 
-def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False,save_fig = False):
+def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False,save_fig = False, source = 'Internship_Victor_CBC_ET', infos = None):
 
     """
     Convert the pycbc TimeSeries into gwpy TimeSeries to ease the calculation of the psds.
@@ -184,7 +191,12 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
         Print the average noise to compare with the nominal noise PSD from ET.
     noisePSD : bool (optional)
         Initial False, if True print the nominal noise PSD from ET.
-
+    source : str (optional)
+        Choose "MLE_pipeline" to use data from the pickle file.
+    infos : dict (optional, use only if source == 'MLE_pipeline')
+        Infiormations about our analysis
+        e.g. times = {'t_start' : t_start, 't_end' : t_end, 'index' : study_index, 'type' : study_type}
+    
     Returns
     -------
     Plot of the comparison between both signals : the reconstructed ans the real one.
@@ -228,9 +240,12 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
         ax.loglog(freq_av,psd_res_av,label = 'Average residual')
     
     ax.legend()
-
-    if save_fig : 
-        plt.savefig('comparison_freq')
+    
+    if save_fig :
+        if source == 'MLE_pipeline':
+            plt.savefig('../results/output_' + format(infos.t_start, ".0f") + '-' + format(infos.t_end, ".0f") + '/comparison_freq')
+        else :
+            plt.savefig('comparison_freq')
 
 
 #======================================================================================================
