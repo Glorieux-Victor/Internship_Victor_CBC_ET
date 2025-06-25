@@ -145,7 +145,7 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
 
     if save_fig :
         if source == 'MLE_pipeline':
-            plt.savefig('../results/output_' + format(infos.t_start, ".0f") + '-' + format(infos.t_end, ".0f") + '/comparison_signal')
+            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_signal')
         else :
             plt.savefig('comparaison_signal')
 
@@ -225,7 +225,7 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
 
     if noisePSD :
         ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
-        ax.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD')
+        ax.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD', zorder=5)
     
     if average_noise['status'] :
         psd_res_av = []
@@ -237,13 +237,13 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
         for i in range(N):
             psd_res_av.append( (np.sum(np.array([psd[j + ech*i] for j in range(ech)]))) /ech)
             freq_av.append( (np.sum(np.array([freq[j + ech*i] for j in range(ech)]))) /ech)
-        ax.loglog(freq_av,psd_res_av,label = 'Average residual')
+        ax.loglog(freq_av,psd_res_av,label = 'Average residual', zorder = 4)
     
     ax.legend()
     
     if save_fig :
         if source == 'MLE_pipeline':
-            plt.savefig('../results/output_' + format(infos.t_start, ".0f") + '-' + format(infos.t_end, ".0f") + '/comparison_freq')
+            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_freq')
         else :
             plt.savefig('comparison_freq')
 
@@ -253,7 +253,7 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
 #======================================================================================================
 
 
-def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None):
+def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None, save_fig = False, infos = None, source = 'Internship_Victor_CBC_ET', name = ''):
     """
     Plot q-Transform of gwpy TimeSeries.
 
@@ -285,3 +285,9 @@ def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None
         ax.colorbar(cmap='viridis', label='Normalized energy', clim=(colorbar_limits['inf'], colorbar_limits['sup']))
     else :
         ax.colorbar(cmap='viridis', label='Normalized energy')
+
+    if save_fig :
+        if source == 'MLE_pipeline':
+            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/q_transform' + name)
+        else :
+            plt.savefig('q_transform' + name)
