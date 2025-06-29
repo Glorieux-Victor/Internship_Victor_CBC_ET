@@ -665,3 +665,38 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
 
     if save_fig :
         plt.savefig(fig_name)
+
+#===============================================================================================================================================
+#===============================================================================================================================================
+#===============================================================================================================================================
+
+def extract_best_SNR(SNR_lower_limit, source = 'local'):
+    """
+    Find the best SNR signals from the list_mdc1_v2.txt.
+
+    Parameters
+    ----------
+    SNR_lower_limit : dict
+        {"type_1" : SNR_lower_limit,"type_2" : SNR_lower_limit,"type_3" : SNR_lower_limit}
+    
+    Returns
+    ----------
+    Dictionary with lists of indexes for best SNR signals for each type of CBC.
+
+    """ 
+    if source == 'IJCLab_server' :
+        ET_params = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
+    elif source == 'local' :
+        ET_params = pd.read_csv("/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
+
+    dict_best_SNR = {}
+    ET_params = ET_params.sort_values('snr',ascending=False)
+    for i, type in enumerate(['type_1','type_2','type_3']) : 
+        ET_params_ = ET_params[ET_params['type'] == i+1]
+        ET_params_ = ET_params_[ET_params_['snr'] > SNR_lower_limit[type]]
+        number_high_SNR = len(ET_params_['snr'])
+        list_best_SNR = np.arange(number_high_SNR)
+        dict_best_SNR[type] = list_best_SNR
+    
+    return dict_best_SNR
+

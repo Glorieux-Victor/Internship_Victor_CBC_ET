@@ -202,12 +202,10 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
     Plot of the comparison between both signals : the reconstructed ans the real one.
     """
 
-
     #Conversion en TimesSeries de gwpy pour le calcul du psd avec .psd().
     tsgwpy_opti_cut = pycbc_to_gwpy(opti_cut)
     tsgwpy_reel_cut = pycbc_to_gwpy(reel_cut)
     tsgwpy_res = pycbc_to_gwpy(residual)
-
     #Calcul des psd
     psd_opti = tsgwpy_opti_cut[ifo].psd()
     psd_reel = tsgwpy_reel_cut[ifo].psd()
@@ -226,7 +224,6 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
     if noisePSD :
         ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
         ax.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD', zorder=5)
-    
     if average_noise['status'] :
         psd_res_av = []
         freq_av = []
