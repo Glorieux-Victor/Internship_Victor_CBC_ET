@@ -145,7 +145,7 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
 
     if save_fig :
         if source == 'MLE_pipeline':
-            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_signal')
+            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_signal.svg', format='svg')
         else :
             plt.savefig('comparaison_signal')
 

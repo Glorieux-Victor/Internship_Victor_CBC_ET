@@ -14,6 +14,11 @@ from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1
 import sys
 from plot_results import convert_signal, comparison_signals, comparison_freq, qtrans_plot, gwpy_to_pycbc, pycbc_to_gwpy
 
+# =========================================
+#instruments_PSD, antenna_factors, comparison_signals_params, likelihood_visualisation, extract_best_SNR
+# =========================================
+
+
 def puissance_seglen(seglen):
     k=seglen
     q = 0
@@ -193,7 +198,7 @@ def signal_GW(hfilt,number,dossier_save,t_start,t_stop,save):
 #======================================================================================================
 
 
-def extraction_temps(indexes,type,source,print_):
+def extraction_temps(indexes,type,source = 'Internship_Victor_CBC_ET',print_ = False):
 
     """
     Extract time parameters (tc, t0) of the GW signals using the file "list_mdc1_v2.txt".
@@ -222,11 +227,8 @@ def extraction_temps(indexes,type,source,print_):
 
     if source == "IJCLab_server" :
         ET = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt",sep = '  ',engine='python')
-    elif source == "local" :
-        ET = pd.read_csv('/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt',sep = '  ',engine='python')
     else :
-        print("Erreur : veuillez rentrer \"local\" ou \"IJCLab_server\" pour le paramètre source.")
-        sys.exit()
+        ET = pd.read_csv('/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/ET_data.txt',sep = '  ',engine='python')
 
     #Ce code permet d'extraire les refs, t0 et tc des événements d'onde GW que nous voulons regarder.
     #Nous listons les indices des évenements dans "indexes" et nous regardons en priorité les événements avec le meilleur SNR.
@@ -235,7 +237,7 @@ def extraction_temps(indexes,type,source,print_):
     def temps_ref(indexes,source=source):
         if source == 'IJCLab_server' :
             ET_params = pd.read_csv("/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
-        elif source == 'local' :
+        else :
             ET_params = pd.read_csv("/home/victor/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/data/loudest_BBH/list_mdc1_v2.txt",sep = ' ',engine='python', index_col = False)
 
         ET_params = ET_params.sort_values('snr',ascending=False) #Sélectionne les events avec le meilleur SNR pour les indices les plus faibles.
@@ -514,7 +516,7 @@ def antenna_factors(detectors,params):
 
 def comparison_signals_params(model,dict_param, cbc_params, ifos = ['E1','E2','E3']):
     """
-    Comparison of a same signal with different parameters.
+    PLot : Comparison of a same signal with different parameters.
 
     Parameters
     ----------
@@ -526,9 +528,6 @@ def comparison_signals_params(model,dict_param, cbc_params, ifos = ['E1','E2','E
     cbc_params : dict
         Dictionary containing the parameters of the cbc.
     
-    Returns
-    -------
-    Dictionary with fp and another with fx for each detector.
     """
     fig_ts = plt.figure()
     ax_ts = fig_ts.gca()
@@ -700,3 +699,70 @@ def extract_best_SNR(SNR_lower_limit, source = 'local'):
     
     return dict_best_SNR
 
+#===============================================================================================================================================
+#============================================= PySTAMPAS utilities =============================================================================
+#===============================================================================================================================================
+
+import subprocess
+
+def the_fonction(best_SNR_dict) :
+    #run all the minimizations and put t_start and t_end in lists.
+    t_start_list = []
+    t_end_list = []
+    t_start_minimization = []
+    t_end_minimization = []
+    for key, value in dict.items() :
+        subprocess.run([
+            "python", "/home/victor-glorieux/MLE-pipeline/Run/MLE_run.py",
+            "--get_parameters", str(True),
+            "--minimization", str(True),
+            "--index", str(value),
+            "--type", str(key[5:6])
+        ]) #add a return of t_start_minimization and _t_end_minimization.
+        t_start_minimization.append()
+        t_end_minimization.append()
+        #Find a way to get back the t_start and t_end of the miniization to be able to read the pickle
+        t_start_list.append()
+        t_end_list.append()
+    
+    #Take the t_start and t_end of the MDC data and divide it in blocks of 500
+    t_start_MDC = 1000000000
+    ref_start_list = []
+    ref_end_list = []
+
+    for t0,ind in enumerate(t_start_list) :
+        ref_start = (t_start_list - t_start_MDC)//500
+        ref_end = (t_end_list[ind] - t_start_MDC)//500
+        ref_start_list.append(ref_start)
+        ref_end_list.append(ref_end)
+
+    interval = [] #Contient True : signal sur un seul fichier, ou False : signal sur plusieurs fichiers.
+    init=[] #Contient le nom des fichiers
+    final=[]
+
+    def find_ref(ref,ref_sup,t0,tc):
+        for int_i,i in enumerate(cols) : 
+            for int_j,j in enumerate(ET[i]):
+                if int_j + int_i*len(ET[i]) == ref: #On se repère avec les indices.
+                    init.append(j[17:27])
+                if int_j + int_i*len(ET[i]) == ref_sup:
+                    final.append(j[17:27])
+                    #print(j[17:27])
+                if int_j + int_i*len(ET[i]) - 1  == ref:
+                    #print(j[17:27])
+                    if float(tc) < float(j[17:27]):
+                        interval.append(True)
+                        #print('Signal compris dans l\'intervale de temps.')
+                    else :
+                        interval.append(False)
+                        #print('Il faut prendre un plus grand intervale.')
+
+    # ref_list,t0_list,tc_list,ref_sup,params_list = temps_ref(indexes)
+    # for i in range(len(ref_list)):
+    #     if print_ ==True:
+    #         print('t0 :', t0_list[i])
+    #         print('tc :', tc_list[i])
+    #     find_ref(ref_list[i],ref_sup[i],t0_list[i],tc_list[i])
+
+    # t0_list = [float(t0_list[i]) for i in range(len(t0_list))]
+    # tc_list = [float(tc_list[i]) for i in range(len(tc_list))]
