@@ -481,6 +481,8 @@ def instruments_PSD(instruments_dict,ET_MDC=False):
     plt.tight_layout
     plt.legend()
 
+    plt.savefig('images/instruments_PSD_comparison.svg', format='svg')
+
 #======================================================================================================
 #======================================================================================================
 #======================================================================================================
@@ -514,7 +516,7 @@ def antenna_factors(detectors,params):
 #======================================================================================================
 #======================================================================================================
 
-def comparison_signals_params(model,dict_param, cbc_params, ifos = ['E1','E2','E3']):
+def comparison_signals_params(model,dict_param, cbc_params,domain, ifos = ['E1','E2','E3']):
     """
     PLot : Comparison of a same signal with different parameters.
 
@@ -527,12 +529,17 @@ def comparison_signals_params(model,dict_param, cbc_params, ifos = ['E1','E2','E
         e.g. dict_params = {'param' : 'mass1', 'A' : 100, 'B' : 20, 'C' : 5}.
     cbc_params : dict
         Dictionary containing the parameters of the cbc.
+    domain : str
+        'freq' or 'time' depending on the domain we want to plot the signals.
     
     """
-    fig_ts = plt.figure()
-    ax_ts = fig_ts.gca()
-    fig_fs = plt.figure()
-    ax_fs = fig_fs.gca()
+
+    if domain == 'time' :
+        fig_ts = plt.figure()
+        ax_ts = fig_ts.gca()
+    else :
+        fig_fs = plt.figure()
+        ax_fs = fig_fs.gca()
 
     for key, val in dict_param.items():
         if key == 'param' :
@@ -547,28 +554,34 @@ def comparison_signals_params(model,dict_param, cbc_params, ifos = ['E1','E2','E
                 reconstructed_signal_tdomain[ifo] = reconstructed_signal_tdomain[ifo].cyclic_time_shift(t_end - tc - 0.2)
                 reconstructed_signal_fdomain[ifo] = reconstructed_signal_tdomain[ifo].to_frequencyseries()
             
-            ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+            if domain == 'time' :
+                ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = dict_param['param'] + ' = {}'.format(dict_param[key]))
 
-            tsgwpy = pycbc_to_gwpy(reconstructed_signal_tdomain)
-            psd_gwpy = tsgwpy['E1'].psd()
-            ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+            else :
+                tsgwpy = pycbc_to_gwpy(reconstructed_signal_tdomain)
+                psd_gwpy = tsgwpy['E1'].psd()
+                ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(dict_param[key]))
 
 
-    ax_ts.set_xlabel('Time [s]')
-    ax_ts.set_ylabel('Relative strain')
-    ax_ts.set_xlim(tc - 0.3,tc + 0.05)
-    ax_ts.legend()
+    if domain == 'time' :
+        ax_ts.set_xlabel('Time [s]')
+        ax_ts.set_ylabel('Relative strain')
+        ax_ts.set_xlim(tc - 0.3,tc + 0.05)
+        ax_ts.legend()
 
-    ax_fs.set_xlabel('Frequency [Hz]')
-    ax_fs.set_ylabel('PSD [1/Hz]')
-    ax_fs.set_xlim(4,1000)
-    ax_fs.set_ylim(10e-55,10e-44)
-    ax_fs.legend()
+    else :
+        ax_fs.set_xlabel('Frequency [Hz]')
+        ax_fs.set_ylabel('PSD [1/Hz]')
+        ax_fs.set_xlim(4,1000)
+        ax_fs.set_ylim(10e-55,10e-44)
+        ax_fs.legend()
     
-    ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
-    ax_fs.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD')
+        ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
+        ax_fs.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD')
 
     plt.tight_layout
+
+    plt.savefig('images/' + dict_param['param'] + '_comp_' + domain + '.svg', format = 'svg')
 
 
 #===============================================================================================================================================
@@ -663,7 +676,7 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
     fig_lik.tight_layout()
 
     if save_fig :
-        plt.savefig(fig_name)
+        plt.savefig(fig_name + '.svg', format='svg')
 
 #===============================================================================================================================================
 #===============================================================================================================================================

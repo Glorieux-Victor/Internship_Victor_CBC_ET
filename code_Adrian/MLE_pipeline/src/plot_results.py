@@ -147,7 +147,7 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
         if source == 'MLE_pipeline':
             plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_signal.svg', format='svg')
         else :
-            plt.savefig('comparaison_signal')
+            plt.savefig('comparaison_signal.svg', format='svg')
 
 
 #======================================================================================================
@@ -240,9 +240,9 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
     
     if save_fig :
         if source == 'MLE_pipeline':
-            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_freq')
+            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_freq.svg', format='svg')
         else :
-            plt.savefig('comparison_freq')
+            plt.savefig('comparison_freq.svg', format='svg')
 
 
 #======================================================================================================
