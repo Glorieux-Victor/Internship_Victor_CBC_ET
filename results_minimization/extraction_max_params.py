@@ -9,18 +9,28 @@ sys.path.append('/home/victor-glorieux/Internship_Victor_CBC_ET')
 from pycbc.types import TimeSeries as PycbcTimeSeries
 from get_data import read_MDC_data
 import glob
+import os
 
-max_list = {'mass1': [], 'mass2': [], 'spin1z': [], 'spin2z': [], 'distance': [], 'polarization': [], 'inclination': [], 'tc': [], 'coa_phase': [], 'ra': [], 'dec': [], 'spin1x': [], 'spin2x': [], 'spin1y': [], 'spin2y': [], 'eccentricity': [], 'approximant': [], 'f_lower': []}
+max_list = {'mass1': [], 'mass2': [], 'spin1z': [], 'spin2z': [], 'distance': [], 'polarization': [],
+            'inclination': [], 'tc': [], 'coa_phase': [], 'ra': [], 'dec': [], 'spin1x': [], 'spin2x': [],
+            'spin1y': [], 'spin2y': [], 'eccentricity': [], 'approximant': [], 'f_lower': [],
+            'type' : [], 'snr' : []}
 
-list_ = glob.glob("/home/victor-glorieux/MLE-pipeline/results/**/*.pkl", recursive=True)
+list_pickles = glob.glob("/home/victor-glorieux/MLE-pipeline/results/**/*.pkl", recursive=True)
 
-for i in list_ :
-    with open(i, 'rb') as f:
-        model= pickle.load(f)
-        max = model.maximized_params
-        for key, value in max.items() :
-            max_list[key].append(value)
+path = "/home/victor-glorieux/MLE-pipeline/results"
+for name in os.listdir("/home/victor-glorieux/MLE-pipeline/results"):
+    if name[-4:] == '.txt' :
+        continue
+    else :
+        features = pd.read_csv(path + '/' + name + '/' + "features" + name[6:], sep = ' ')
+        pickle_name = path + '/' + name + '/' + "model_optimized" + name[6:] + '.pkl'
+        with open(pickle_name, 'rb') as f:
+            model= pickle.load(f)
+            max = model.maximized_params
+            for key, value in max.items() :
+                max_list[key].append(value)
+            max_list['type'].append(features['type'][0])
+            max_list['snr'].append(features['SNR'][0])
 
-
-
-print(max_list)
+pd.DataFrame(max_list).to_csv('GW_maximized_params.txt', index=False, sep = ' ')
