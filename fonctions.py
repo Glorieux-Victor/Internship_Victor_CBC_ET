@@ -13,6 +13,7 @@ from pycbc.detector import Detector
 from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 import sys
 from plot_results import convert_signal, comparison_signals, comparison_freq, qtrans_plot, gwpy_to_pycbc, pycbc_to_gwpy
+from params_calculation import spinSz_from_sz_mass, spinAz_from_sz_mass, s1z_from_spinSz_spinAz, s2z_from_spinSz_spinAz
 
 # =========================================
 #instruments_PSD, antenna_factors, comparison_signals_params, likelihood_visualisation, extract_best_SNR
@@ -589,7 +590,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain, ifos = ['E1',
 #===============================================================================================================================================
 
 
-def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False):
+def likelihood_visualisation(model,true_params,params = 'all',fig_name = None,save_fig = False):
     """
     Plot of the likelihood ratio for all the parameters used during the maxmimization process, giving a GW model.
 
@@ -599,6 +600,8 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
         MDCGaussianNoise model of GW.
     true_params : dict
         Dictionary containing the true parameter of the signal : the best loglr parameters.
+    params : list (optional)
+        List of the params we want to plot. Default : 'all' for all params.
     fig_name : str (optional)
     save_fig : bool (optional)
     
@@ -606,6 +609,10 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
 
     mchirp_true = mchirp_from_mass1_mass2(true_params['mass1'],true_params['mass2'])
     q_true = q_from_mass1_mass2(true_params['mass1'],true_params['mass2'])
+
+    spinSz_true = spinSz_from_sz_mass(true_params['spin1z'],true_params['spin2z'],true_params['mass1'],true_params['mass2'])
+    spinAz_true = spinAz_from_sz_mass(true_params['spin1z'],true_params['spin2z'],true_params['mass1'],true_params['mass2'])
+
 
     def plot_lik(axs_list,label_x,data_x,true_params,param_min,param_max,echantill,nb_graphs,q):
         clear_output(wait=True)
@@ -633,6 +640,20 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
                 params_modif.update(params)
                 model.update(**params_modif)
                 y_grid[i]=-model.loglr
+            elif data_x == 'spinSz' :
+                spin1z = s1z_from_spinSz_spinAz(spinSz = x_,spinAz = spinAz_true,mass1 = true_params['mass1'],mass2 = true_params['mass2'])
+                spin2z = s2z_from_spinSz_spinAz(spinSz = x_,spinAz = spinAz_true,mass1 = true_params['mass1'],mass2 = true_params['mass2'])
+                params = {'spin1z' : spin1z, 'spin2z' : spin2z}
+                params_modif.update(params)
+                model.update(**params_modif)
+                y_grid[i]=-model.loglr
+            elif data_x == 'spinAz' :
+                spin1z = s1z_from_spinSz_spinAz(spinSz = spinSz_true,spinAz = x_,mass1 = true_params['mass1'],mass2 = true_params['mass2'])
+                spin2z = s2z_from_spinSz_spinAz(spinSz = spinSz_true,spinAz = x_,mass1 = true_params['mass1'],mass2 = true_params['mass2'])
+                params = {'spin1z' : spin1z, 'spin2z' : spin2z}
+                params_modif.update(params)
+                model.update(**params_modif)
+                y_grid[i]=-model.loglr
             else :
                 params = {data_x : x_} #Les paramètres que l'on souhaite modifier sur le modèle de notre GW
                 params_modif.update(params)
@@ -651,27 +672,38 @@ def likelihood_visualisation(model,true_params,fig_name = None,save_fig = False)
             ax.set_xlabel('q',fontsize = 30)
             ax.axvline(q_true,color = 'red',label = 'True param')
             ax.axvline(1/q_true,color = 'red',label = '1/q',ls = '--')
+        elif data_x == 'spinSz' :
+            ax.set_xlabel(label_x[data_x],fontsize = 30)
+            ax.axvline(spinSz_true,color = 'red',label = 'True param')
+        elif data_x == 'spinAz' :
+            ax.set_xlabel(label_x[data_x],fontsize = 30)
+            ax.axvline(spinAz_true,color = 'red',label = 'True param')
         else :
             ax.set_xlabel(label_x[data_x],fontsize = 30)
             ax.axvline(true_params[data_x],color = 'red',label = 'True param')
         ax.tick_params(labelsize = 20)
         ax.legend(fontsize = 25)
     
-    fig_lik, axs = plt.subplots(nrows=3, ncols=4, figsize = (40,20))
+    fig_lik, axs = plt.subplots(nrows=4, ncols=4, figsize = (40,20))
 
-    axs_list = {'tc' : axs[0,0], 'mass1' : axs[0,1], 'mass2' : axs[0,2], 'distance'  : axs[0,3], 'ra'    : axs[1,0], 'dec' : axs[1,1], 'polarization' : axs[1,2], 'inclination' : axs[1,3], 'spin1z' : axs[2,0], 'spin2z'  : axs[2,1], 'coa_phase'  : axs[2,2]}
-    label_x = {'tc'  : r'$t_c$', 'mass1' : r'$m_1$', 'mass2' : r'$m_2$',  'distance' : r'distance', 'ra' : r'ra', 'dec'    : r'dec', 'polarization'   : r'polarization', 'inclination'  : r'inclination', 'spin1z'  : r'$\text{spin}_{1z}$', 'spin2z' : r'$\text{spin}_{2z}$', 'coa_phase' : r'phase coalescence'}
-    data_x = ['tc',   'mass1',    'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z', 'coa_phase']
-    param_min = {'tc' : true_params['tc'] - 0.5,'mass1' :   mchirp_true - 2,'mass2' :   0.2,'distance'  :     true_params['distance'] - 200,'ra' :        0,'dec' :   -np.pi/2,'polarization' :        0,'inclination' :       0,'spin1z' :    -1,'spin2z' :   -1,'coa_phase' : 0}
-    param_max = {'tc' : true_params['tc'] + 0.5,'mass1' :  mchirp_true + 2,'mass2' :      3,'distance'  :   true_params['distance'] + 200,'ra' :  2*np.pi,'dec' :    np.pi/2,'polarization' :  2*np.pi,'inclination' :   np.pi,'spin1z' :     1,'spin2z' :    1,'coa_phase' : 2*np.pi}
-    echantill = {'tc' : 0.0005,'mass1' :   0.01,'mass2' : 0.005,'distance'  :     1,'ra' :    0.01,'dec' :     0.01,'polarization' :     0.01,'inclination' :    0.01,'spin1z' :  0.01,'spin2z' : 0.01,'coa_phase' : 0.01}
+    axs_list = {'tc' : axs[0,0], 'mass1' : axs[0,1], 'mass2' : axs[0,2], 'distance'  : axs[0,3], 'ra'    : axs[1,0], 'dec' : axs[1,1], 'polarization' : axs[1,2], 'inclination' : axs[1,3], 'spin1z' : axs[2,0], 'spin2z'  : axs[2,1], 'coa_phase'  : axs[2,2], 'spinSz' : axs[2,3], 'spinAz' : axs[3,0]}
+    label_x = {'tc'  : r'$t_c$', 'mass1' : r'$m_1$', 'mass2' : r'$m_2$',  'distance' : r'distance', 'ra' : r'ra', 'dec'    : r'dec', 'polarization'   : r'polarization', 'inclination'  : r'inclination', 'spin1z'  : r'$\text{spin}_{1z}$', 'spin2z' : r'$\text{spin}_{2z}$', 'coa_phase' : r'phase coalescence', 'spinSz' : r'$\text{spin}_{Sz}$', 'spinAz' : r'$\text{spin}_{Az}$'}
+    data_x = ['tc',   'mass1',    'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z', 'coa_phase', 'spinSz', 'spinAz']
+    param_min = {'tc' : true_params['tc'] - 0.5,'mass1' :   mchirp_true - 2,'mass2' :   0.2,'distance'  :     true_params['distance'] - 200,'ra' :        0,'dec' :   -np.pi/2,'polarization' :        0,'inclination' :       0,'spin1z' :    -1,'spin2z' :   -1,'coa_phase' : 0, 'spinSz' : -0.8, 'spinAz' : -0.8}
+    param_max = {'tc' : true_params['tc'] + 0.5,'mass1' :  mchirp_true + 2,'mass2' :      3,'distance'  :   true_params['distance'] + 200,'ra' :  2*np.pi,'dec' :    np.pi/2,'polarization' :  2*np.pi,'inclination' :   np.pi,'spin1z' :     1,'spin2z' :    1,'coa_phase' : 2*np.pi, 'spinSz' : 0.8, 'spinAz' : 0.8}
+    echantill = {'tc' : 0.0005,'mass1' :   0.01,'mass2' : 0.005,'distance'  :     1,'ra' :    0.01,'dec' :     0.01,'polarization' :     0.01,'inclination' :    0.01,'spin1z' :  0.01,'spin2z' : 0.01,'coa_phase' : 0.01, 'spinSz' : 0.005, 'spinAz' : 0.005}
 
     nb_graphs = len(data_x)
 
     q=0
-    for i in range(nb_graphs ):
-        q += 1
-        plot_lik(axs_list,label_x,data_x[i],true_params,param_min,param_max,echantill,nb_graphs = nb_graphs,q=q)
+    if params == 'all' :
+        for i in range(nb_graphs ):
+            q += 1
+            plot_lik(axs_list,label_x,data_x[i],true_params,param_min,param_max,echantill,nb_graphs = nb_graphs,q=q)
+    else :
+        for data_x in params :
+            q += 1
+            plot_lik(axs_list,label_x,data_x,true_params,param_min,param_max,echantill,nb_graphs = len(params),q=q)
     
     fig_lik.tight_layout()
 

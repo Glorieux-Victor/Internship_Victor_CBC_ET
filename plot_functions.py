@@ -12,6 +12,7 @@ from pycbc.noise.gaussian import frequency_noise_from_psd
 from pycbc.waveform.generator import (FDomainDetFrameGenerator,FDomainCBCGenerator)
 from pycbc.psd import EinsteinTelescopeP1600143
 from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
+from params_calculation import spinSz_from_sz_mass, spinAz_from_sz_mass, s1z_from_spinSz_spinAz, s2z_from_spinSz_spinAz
 
 
 #====================================================
@@ -472,3 +473,57 @@ def plot_correlation_chirp_q(model,cbc_params,save_fig):
 
     if save_fig:
         plt.savefig('Chirp_mass_Mass_ratio')
+
+#======================================================================================================
+#======================================================================================================
+#======================================================================================================
+
+
+
+def plot_correlation_spinSz_spinAz(model,cbc_params,save_fig = False):
+
+    model.update(**cbc_params)
+
+    spinSz_true = spinSz_from_sz_mass(cbc_params['spin1z'],cbc_params['spin2z'],cbc_params['mass1'],cbc_params['mass2'])
+    spinAz_true = spinAz_from_sz_mass(cbc_params['spin1z'],cbc_params['spin2z'],cbc_params['mass1'],cbc_params['mass2'])
+
+
+    x_grid = np.arange(-0.3,0.3, 0.005)
+    y_grid = np.arange(-0.3,0.3, 0.005)
+
+    print("Iterations totales : ",len(x_grid)*len(y_grid))
+    k=0
+
+    ll_ratio_grid_unit = np.zeros((len(x_grid), len(y_grid)))
+    print(ll_ratio_grid_unit.shape)
+
+    for i, sSz in enumerate(x_grid):
+        for j, sAz in enumerate(y_grid):
+            spin1z = s1z_from_spinSz_spinAz(spinSz = sSz,spinAz = sAz,mass1 = cbc_params['mass1'],mass2 = cbc_params['mass2'])
+            spin2z = s2z_from_spinSz_spinAz(spinSz = sSz,spinAz = sAz,mass1 = cbc_params['mass1'],mass2 = cbc_params['mass2'])
+            model.update(spin1z=spin1z, spin2z=spin2z) #Modification du modèle 
+            ll_ratio_grid_unit[i,j] = model.loglr #calcul du likelihood ratio
+            k +=1 #Compteur du nombre d'itérations
+            print ("Iteration : {}, likelihood : {}".format(k,ll_ratio_grid_unit[i,j]), end="\r")
+            #time.sleep(0.1)
+
+    max_index = np.unravel_index(np.argmax(ll_ratio_grid_unit), ll_ratio_grid_unit.shape)
+
+    # Extract corresponding m1 and m2 values
+    x_max = x_grid[max_index[0]]
+    y_max = y_grid[max_index[1]]
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(ll_ratio_grid_unit.T,  # Transpose to align axes correctly
+            origin='lower',   # Make sure lower m1/m2 is at bottom-left
+            extent=[x_grid[0], x_grid[-1], y_grid[0], y_grid[-1]],
+            aspect='auto',    # Or use 'equal' if square pixels are desired
+            cmap='viridis')   # You can change colormap as desired
+    plt.scatter(x_max, y_max, marker='x', color='red', label='Maximum')
+    plt.legend()
+    plt.colorbar(label='Log-Likelihood Ratio')
+    plt.xlabel(r'$\text{spin}_{Sz}$')
+    plt.ylabel(r'$\text{spin}_{Az}$')
+
+    if save_fig:
+        plt.savefig('spinSz_spinAz')
