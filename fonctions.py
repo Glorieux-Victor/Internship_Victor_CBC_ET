@@ -12,6 +12,7 @@ import pycbc.psd.analytical as detector_psd
 from pycbc.detector import Detector
 from pycbc.conversions import mchirp_from_mass1_mass2, q_from_mass1_mass2, mass1_from_mchirp_q, mass2_from_mchirp_q
 import sys
+from pycbc.types import timeseries as pycbcTimeSerie
 from plot_results import convert_signal, comparison_signals, comparison_freq, qtrans_plot, gwpy_to_pycbc, pycbc_to_gwpy
 from params_calculation import spinSz_from_sz_mass, spinAz_from_sz_mass, s1z_from_spinSz_spinAz, s2z_from_spinSz_spinAz
 
@@ -517,7 +518,7 @@ def antenna_factors(detectors,params):
 #======================================================================================================
 #======================================================================================================
 
-def comparison_signals_params(model,dict_param, cbc_params,domain, ifos = ['E1','E2','E3']):
+def comparison_signals_params(model,dict_param, cbc_params,domain,spectroplot = False, ifos = ['E1','E2','E3'], save_fig = False):
     """
     PLot : Comparison of a same signal with different parameters.
 
@@ -538,7 +539,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain, ifos = ['E1',
     if domain == 'time' :
         fig_ts = plt.figure()
         ax_ts = fig_ts.gca()
-    else :
+    elif domain == 'freq' :
         fig_fs = plt.figure()
         ax_fs = fig_fs.gca()
 
@@ -559,30 +560,56 @@ def comparison_signals_params(model,dict_param, cbc_params,domain, ifos = ['E1',
                 ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = dict_param['param'] + ' = {}'.format(dict_param[key]))
 
             else :
+                # for ifo in ifos :
+                #     reconstructed_signal_tdomain[ifo] = reconstructed_signal_tdomain[ifo].time_slice(tc - 5, tc + 0.2)
                 tsgwpy = pycbc_to_gwpy(reconstructed_signal_tdomain)
-                psd_gwpy = tsgwpy['E1'].psd()
-                ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+                if domain == 'freq' :
+                    psd_gwpy = tsgwpy['E1'].psd()
+                    ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+                else : 
+                    # Gwpy_TimeSeries = {}
+                    # for ifo in ifos :
+                    #     Gwpy_TimeSeries[ifo] = TimeSeries(data = reconstructed_signal_tdomain[ifo],times=reconstructed_signal_tdomain[ifo].get_sample_times() + 100)
+                    qtrans_plot(tsgwpy['E1'],frange = (5,100),qrange = (5,15),fres=0.1,tres = 0.1,colorbar_limits = {'inf' : 0, 'sup' : 10000})
+
+                    plt.figure()
+                    plt.plot(tsgwpy['E1'].times, tsgwpy['E1'])
+                    plt.xlim(tc-5, tc + 0.2)
+
+            if spectroplot :
+                spectro = tsgwpy['E1'].spectrogram(1, fftlength=1)
+                plot = spectro.plot(figsize=[8, 4])
+                ax = plot.gca()
+                ax.set_ylim(4, 150)
+                #ax.set_xlim(tc - 50, tc + 0.5)
+                ax.set_xscale('seconds')
+                ax.set_yscale('log')
+                ax.grid(True, axis='y', which='both')
+                ax.colorbar(cmap='viridis', label='Normalized energy')
+
 
 
     if domain == 'time' :
         ax_ts.set_xlabel('Time [s]')
         ax_ts.set_ylabel('Relative strain')
-        ax_ts.set_xlim(tc - 0.3,tc + 0.05)
+        ax_ts.set_xlim(tc - 1,tc + 0.2)
         ax_ts.legend()
 
-    else :
+    elif domain == 'freq' :
         ax_fs.set_xlabel('Frequency [Hz]')
         ax_fs.set_ylabel('PSD [1/Hz]')
         ax_fs.set_xlim(4,1000)
         ax_fs.set_ylim(10e-55,10e-44)
-        ax_fs.legend()
     
         ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
         ax_fs.loglog(ET10km['frequencies'],ET10km['C'],label = 'Nominal noise PSD')
+        ax_fs.legend()
+        
 
     plt.tight_layout
 
-    plt.savefig('images/' + dict_param['param'] + '_comp_' + domain + '.svg', format = 'svg')
+    if save_fig :
+        plt.savefig('images/' + dict_param['param'] + '_comp_' + domain + '.svg', format = 'svg')
 
 
 #===============================================================================================================================================
