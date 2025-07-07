@@ -364,8 +364,8 @@ def single_plot_spec_GW(path,channel,dossier_save,save,i,ind,type):
 #======================================================================================================
 #======================================================================================================
 
-def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,colorbar_limits = None,frange=(4, 100),qrange=(5, 30),
-                              fres=0.1, tres=0.01,show_fit=False):
+def extract_mchirp_tc_spectro(tsgwpy_reel,q_lim,ifo = ['E1','E2','E3'],colorbar_limits = None,frange=(4, 100),qrange=(5, 30),
+                              fres=0.1, tres=0.01,show_fit=False, save_fig = False):
 
     """
     Plot of the spectrogram of a signal to find the approximate chirpm and tc.
@@ -445,6 +445,9 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,colorbar_limits = None,frang
     result["mchirp"] = popt[0]/M
     result["u_mchirp"] = np.sqrt(pcov[0,0])/M
     result["u_tc"] = np.sqrt(pcov[1,1])
+
+    if save_fig :
+        plt.savefig('fit_qtrans')
 
     return result
 
