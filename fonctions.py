@@ -364,8 +364,8 @@ def single_plot_spec_GW(path,channel,dossier_save,save,i,ind,type):
 #======================================================================================================
 #======================================================================================================
 
-def extract_mchirp_tc_spectro(tsgwpy_reel,q_lim,ifo = ['E1','E2','E3'],colorbar_limits = None,frange=(4, 100),qrange=(5, 30),
-                              fres=0.1, tres=0.01,show_fit=False, save_fig = False):
+def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = None,frange=(4, 150),qrange=(5, 50),
+                              fres=0.1, tres=0.1,show_fit=False, save_qtrans = False, save_fig = False):
 
     """
     Plot of the spectrogram of a signal to find the approximate chirpm and tc.
@@ -390,45 +390,72 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,q_lim,ifo = ['E1','E2','E3'],colorbar_
     Dictionary containing the "mchrip" (in solar mass) and "tc" from the fit.
     """
 
-    qtrans = tsgwpy_reel[ifo].q_transform(frange=frange, qrange=qrange, fres=fres, tres=tres)
-
-    plot = qtrans.plot(figsize=[8, 4])
-
-    ax = plot.gca()
-    #ax.set_ylim(5, 100)
-    #ax.set_xlim(10, 12)
-    ax.set_xscale('seconds')
-    ax.set_yscale('log')
-    ax.grid(True, axis='y', which='both')
-    if colorbar_limits != None :
-        ax.colorbar(cmap='viridis', label='Normalized energy', clim=(colorbar_limits['inf'], colorbar_limits['sup']))
-    else :
-        ax.colorbar(cmap='viridis', label='Normalized energy')
-
-    range_t = len(qtrans.times.value)
-    range_f = len(qtrans.frequencies.value)
-
     #constants
     G = 6.674e-11
     c = 299792e3
     M = 1.9884 * 10**30
 
-    def function(t, mchirp, tc): #def function to plot the spectrogram with mchirp and tc
+    def qtrans_plot(frange,qrange,fres,tres,colorbar_limits = colorbar_limits,q_lim = q_lim):
+        qtrans = tsgwpy_reel[ifo].q_transform(frange=frange, qrange=qrange, fres=fres, tres=tres)
+
+        plot = qtrans.plot(figsize=[8, 4])
+
+        ax = plot.gca()
+        #ax.set_ylim(5, 100)
+        #ax.set_xlim(10, 12)
+        ax.set_xscale('seconds')
+        ax.set_yscale('log')
+        ax.grid(True, axis='y', which='both')
+        if colorbar_limits != None :
+            ax.colorbar(cmap='viridis', label='Normalized energy', clim=(colorbar_limits['inf'], colorbar_limits['sup']))
+        else :
+            ax.colorbar(cmap='viridis', label='Normalized energy')
+
+        if save_qtrans :
+            plt.savefig(path + 'qtrans')
+        
+        range_t = len(qtrans.times.value)
+        range_f = len(qtrans.frequencies.value)
+
+        plt.figure()
+        y_ = []
+        x_ = []
+        freq_list = qtrans.frequencies.value
+        time_list = qtrans.times.value
+        for i in range(range_t) :
+            if qtrans.value[i,:].max() > q_lim :
+                y_.append(freq_list[np.where(qtrans.value[i,:] == qtrans.value[i,:].max())[0][0]])
+                x_.append(time_list[i])
+
+        x_scaled = [i - x_[0] for i in x_] #Rescale of the time values to ease the fit.
+    
+        return x_scaled, x_, y_
+
+
+    def function_fit(t, mchirp, tc): #def function to plot the spectrogram with mchirp and tc
         tau = tc - t
         return (1/np.pi) * (5/(256*tau))**(3/8) * ((G*mchirp)/(c**3))**(-5/8)
+    
+    x_scaled, x_, y_ = qtrans_plot(frange,qrange,fres,tres)
 
-    plt.figure()
-    y_ = []
-    x_ = []
-    freq_list = qtrans.frequencies.value
-    time_list = qtrans.times.value
-    for i in range(range_t) :
-        if qtrans.value[i,:].max() > q_lim :
-            y_.append(freq_list[np.where(qtrans.value[i,:] == qtrans.value[i,:].max())[0][0]])
-            x_.append(time_list[i])
+    try :
+        popt, pcov = curve_fit(function_fit, x_scaled, y_, p0 = init)
+    except RuntimeError: 
+        print('Failed to fit the spectrogram. Test of another method ...')
 
-    x_scaled = [i - x_[0] for i in x_] #Rescale of the time values to ease the fit.
-    popt, pcov = curve_fit(function, x_scaled, y_, p0 = np.array([20*M,10],dtype = 'float64'))
+        x_scaled, x_, y_ = qtrans_plot(frange,qrange = (4,25),fres=0.01,tres=0.01,colorbar_limits = {'inf' : 15, 'sup' : None}, q_lim=17)
+
+        try :
+            popt, pcov = curve_fit(function_fit, x_scaled, y_, p0 = init)
+        except RuntimeError: 
+            result = {"mchirp" : 'ERROR', "tc" : 'ERROR'}
+            plt.figure()
+            plt.scatter(x_,y_,label = 'courbe',s=4)
+            plt.legend()
+            if save_fig :
+                plt.savefig(path + 'fit_qtrans_error')
+
+            return result
 
     result = {"mchirp" : popt[0], "tc" : popt[1]+x_[0]}
 
@@ -436,7 +463,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,q_lim,ifo = ['E1','E2','E3'],colorbar_
     if show_fit :
         y_fit = []
         for i,x in enumerate(x_):
-            y_fit.append(function(x,result["mchirp"],result["tc"]))
+            y_fit.append(function_fit(x,result["mchirp"],result["tc"]))
         plt.figure()
         plt.scatter(x_,y_,label = 'courbe',s=4)
         plt.plot(x_,y_fit,label = 'fit',c='black')
@@ -447,7 +474,8 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,q_lim,ifo = ['E1','E2','E3'],colorbar_
     result["u_tc"] = np.sqrt(pcov[1,1])
 
     if save_fig :
-        plt.savefig('fit_qtrans')
+        plt.savefig(path + 'fit_qtrans')
+    
 
     return result
 
@@ -488,6 +516,8 @@ def instruments_PSD(instruments_dict,ET_MDC=False):
 
     plt.savefig('images/instruments_PSD_comparison.svg', format='svg')
 
+    plt.close('all')
+
 #======================================================================================================
 #======================================================================================================
 #======================================================================================================
@@ -521,7 +551,7 @@ def antenna_factors(detectors,params):
 #======================================================================================================
 #======================================================================================================
 
-def comparison_signals_params(model,dict_param, cbc_params,domain,spectroplot = False, ifos = ['E1','E2','E3'], save_fig = False):
+def comparison_signals_params(model,dict_param, cbc_params,domain,label,spectroplot = False, ifos = ['E1','E2','E3'], save_fig = False):
     """
     PLot : Comparison of a same signal with different parameters.
 
@@ -560,7 +590,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,spectroplot = 
                 reconstructed_signal_fdomain[ifo] = reconstructed_signal_tdomain[ifo].to_frequencyseries()
             
             if domain == 'time' :
-                ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+                ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = dict_param['param'] + ' = {}'.format(label[key]))
 
             else :
                 # for ifo in ifos :
@@ -568,7 +598,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,spectroplot = 
                 tsgwpy = pycbc_to_gwpy(reconstructed_signal_tdomain)
                 if domain == 'freq' :
                     psd_gwpy = tsgwpy['E1'].psd()
-                    ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(dict_param[key]))
+                    ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(label[key]))
                 else : 
                     # Gwpy_TimeSeries = {}
                     # for ifo in ifos :

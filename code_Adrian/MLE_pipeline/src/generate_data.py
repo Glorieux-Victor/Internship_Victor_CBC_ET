@@ -1,5 +1,9 @@
 from pycbc.waveform.generator import (FDomainDetFrameGenerator,FDomainCBCGenerator)
 from pycbc.conversions import tau0_from_mass1_mass2
+from pycbc.noise.gaussian import frequency_noise_from_psd
+from pycbc.psd import EinsteinTelescopeP1600143
+from pycbc.inference.models import GaussianNoise
+
 default_cbc_params = {
               # Paramètres intrinsèques à la source
               'mass1': 38.6,
@@ -14,7 +18,7 @@ default_cbc_params = {
               'f_lower': 5
                 }
 
-def generate_frequency_domain_signal(cbc_params=default_cbc_params, ifos=['E1', 'E2', 'E3'], with_noise=False, epoch=0):
+def generate_frequency_domain_signal(cbc_params=default_cbc_params, ifos=['E1', 'E2', 'E3'], with_noise=False, epoch=0, mult = 1):
     """
     Generate a CBC signal in the frequency domain for a given list of detectors.
 
@@ -39,7 +43,19 @@ def generate_frequency_domain_signal(cbc_params=default_cbc_params, ifos=['E1', 
     delta_f=1./segment_duration, **cbc_params)
 
     # Génération du signal
-    signal = generator.generate()        
+    signal = generator.generate()
+
+    if with_noise :
+        N = int(len(signal['E1'].get_sample_frequencies()))
+
+        psd = EinsteinTelescopeP1600143(N, 1./segment_duration, cbc_params['f_lower'])
+
+        noise = frequency_noise_from_psd(psd)
+        noise = noise * mult
+
+        for ifo in ifos :
+            signal[ifo] += noise
+    
     
     return signal
 
