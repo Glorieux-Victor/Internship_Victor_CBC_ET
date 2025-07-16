@@ -443,7 +443,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
     except RuntimeError: 
         print('Failed to fit the spectrogram. Test of another method ...')
 
-        x_scaled, x_, y_ = qtrans_plot(frange,qrange = (4,25),fres=0.01,tres=0.01,colorbar_limits = {'inf' : 15, 'sup' : None}, q_lim=17)
+        x_scaled, x_, y_ = qtrans_plot(frange,qrange = (4,25),fres=0.01,tres=0.01,colorbar_limits = {'inf' : 22, 'sup' : None}, q_lim=22)
 
         try :
             popt, pcov = curve_fit(function_fit, x_scaled, y_, p0 = init)
@@ -455,7 +455,8 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
             if save_fig :
                 plt.savefig(path + 'fit_qtrans_error')
 
-            return result
+            y_fit = None
+            return result, x_, y_, y_fit
 
     result = {"mchirp" : popt[0], "tc" : popt[1]+x_[0]}
 
@@ -477,7 +478,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
         plt.savefig(path + 'fit_qtrans')
     
 
-    return result
+    return result, x_, y_, y_fit
 
 
 #======================================================================================================
@@ -551,7 +552,7 @@ def antenna_factors(detectors,params):
 #======================================================================================================
 #======================================================================================================
 
-def comparison_signals_params(model,dict_param, cbc_params,domain,label,spectroplot = False, ifos = ['E1','E2','E3'], save_fig = False):
+def comparison_signals_params(model,dict_param, cbc_params,domain,label,x_time_lim = {'inf' : 1, 'sup' : 0.2},spectroplot = False, ifos = ['E1','E2','E3'], save_fig = False):
     """
     PLot : Comparison of a same signal with different parameters.
 
@@ -624,8 +625,8 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,label,spectrop
 
     if domain == 'time' :
         ax_ts.set_xlabel('Time [s]')
-        ax_ts.set_ylabel('Relative strain')
-        ax_ts.set_xlim(tc - 1,tc + 0.2)
+        ax_ts.set_ylabel('Strain')
+        ax_ts.set_xlim(tc - x_time_lim['inf'],tc + x_time_lim['sup'])
         ax_ts.legend()
 
     elif domain == 'freq' :
@@ -642,7 +643,8 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,label,spectrop
     plt.tight_layout
 
     if save_fig :
-        plt.savefig('images/' + dict_param['param'] + '_comp_' + domain + '.svg', format = 'svg')
+        plt.savefig('../../../images/' + dict_param['param'] + '_unique_' + domain + '.svg', format = 'svg')
+        #plt.savefig('../../../images/' + dict_param['param'] + '_comp_' + domain + '.svg', format = 'svg')
 
 
 #===============================================================================================================================================

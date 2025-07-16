@@ -74,7 +74,7 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
     opti_params : bool (optional)
         Print the optimized parameters.
     source : str (optional)
-        Choose "MLE_pipeline" to use data from the pickle file.
+        Choose "MLE_pipeline" to use data from the pickle file, and "PySTAMPAS_MLE_pipeline" for the entire pipeline.
     infos : dict (optional, use only if source == 'MLE_pipeline')
         Infiormations about our analysis
         e.g. times = {'t_start' : t_start, 't_end' : t_end, 'index' : study_index, 'type' : study_type}
@@ -144,8 +144,9 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
     plt.tight_layout()
 
     if save_fig :
-        if source == 'MLE_pipeline':
-            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_signal.svg', format='svg')
+        if infos != None :
+            plt.savefig(infos['path_folder'] + '/comparison_signal')
+            #plt.savefig(infos['path_folder'] + '/comparison_signal.svg', format='svg')
         else :
             plt.savefig('comparaison_signal.svg', format='svg')
 
@@ -173,7 +174,7 @@ def gwpy_to_pycbc(Gwpy_TimeSeries):
     return Pycbc_TimeSeries
 
 
-def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False,save_fig = False, source = 'Internship_Victor_CBC_ET', infos = None):
+def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False,save_fig = False, infos = None):
 
     """
     Convert the pycbc TimeSeries into gwpy TimeSeries to ease the calculation of the psds.
@@ -192,7 +193,7 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
     noisePSD : bool (optional)
         Initial False, if True print the nominal noise PSD from ET.
     source : str (optional)
-        Choose "MLE_pipeline" to use data from the pickle file.
+        Choose "MLE_pipeline" to use data from the pickle file, and "PySTAMPAS_MLE_pipeline" for the entire pipeline.
     infos : dict (optional, use only if source == 'MLE_pipeline')
         Infiormations about our analysis
         e.g. times = {'t_start' : t_start, 't_end' : t_end, 'index' : study_index, 'type' : study_type}
@@ -239,8 +240,9 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
     ax.legend()
     
     if save_fig :
-        if source == 'MLE_pipeline':
-            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/comparison_freq.svg', format='svg')
+        if infos != None :
+            plt.savefig(infos['path_folder'] + '/comparison_freq')
+            #plt.savefig(infos['path_folder'] + '/comparison_freq.svg', format='svg')
         else :
             plt.savefig('comparison_freq.svg', format='svg')
 
@@ -250,7 +252,7 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
 #======================================================================================================
 
 
-def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None, save_fig = False, infos = None, source = 'Internship_Victor_CBC_ET', name = ''):
+def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None, save_fig = False, infos = None, name = ''):
     """
     Plot q-Transform of gwpy TimeSeries.
 
@@ -284,7 +286,7 @@ def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None
         ax.colorbar(cmap='viridis', label='Normalized energy')
 
     if save_fig :
-        if source == 'MLE_pipeline':
-            plt.savefig('../results/output_' + format(infos['t_start'], ".0f") + '-' + format(infos['t_end'], ".0f") + '/q_transform' + name)
+        if infos != None :
+            plt.savefig(infos['path_folder'] + '/q_transform' + name)
         else :
             plt.savefig('q_transform' + name)
