@@ -512,10 +512,10 @@ def instruments_PSD(instruments_dict,ET_MDC=False):
     plt.ylim(10e-51,10e-35)
     plt.xlabel(r'Frequency [Hz]')
     plt.ylabel(r'PSD [1/Hz]')
-    plt.tight_layout
     plt.legend()
+    plt.tight_layout()
 
-    plt.savefig('images/instruments_PSD_comparison.svg', format='svg')
+    plt.savefig('/home/victor-glorieux/Internship_Victor_CBC_ET/images/instruments_PSD_comparison.svg', format='svg')
 
     plt.close('all')
 
@@ -591,7 +591,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,label,x_time_l
                 reconstructed_signal_fdomain[ifo] = reconstructed_signal_tdomain[ifo].to_frequencyseries()
             
             if domain == 'time' :
-                ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = dict_param['param'] + ' = {}'.format(label[key]))
+                ax_ts.plot(reconstructed_signal_tdomain['E1'].get_sample_times(),reconstructed_signal_tdomain['E1'],label = label[key])
 
             else :
                 # for ifo in ifos :
@@ -599,7 +599,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,label,x_time_l
                 tsgwpy = pycbc_to_gwpy(reconstructed_signal_tdomain)
                 if domain == 'freq' :
                     psd_gwpy = tsgwpy['E1'].psd()
-                    ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = dict_param['param'] + ' = {}'.format(label[key]))
+                    ax_fs.loglog(psd_gwpy.frequencies,psd_gwpy,label = label[key])
                 else : 
                     # Gwpy_TimeSeries = {}
                     # for ifo in ifos :
@@ -643,8 +643,8 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,label,x_time_l
     plt.tight_layout
 
     if save_fig :
-        plt.savefig('../../../images/' + dict_param['param'] + '_unique_' + domain + '.svg', format = 'svg')
-        #plt.savefig('../../../images/' + dict_param['param'] + '_comp_' + domain + '.svg', format = 'svg')
+        plt.savefig('/home/victor-glorieux/Internship_Victor_CBC_ET/images/' + dict_param['param'] + '_unique_' + domain + '.svg', format = 'svg')
+        #plt.savefig('/home/victor-glorieux/Internship_Victor_CBC_ET/images/' + dict_param['param'] + '_comp_' + domain + '.svg', format = 'svg')
 
 
 #===============================================================================================================================================
@@ -873,3 +873,42 @@ def the_fonction(best_SNR_dict) :
 
     # t0_list = [float(t0_list[i]) for i in range(len(t0_list))]
     # tc_list = [float(tc_list[i]) for i in range(len(tc_list))]
+
+
+
+#===============================================================================================================================================
+#===============================================================================================================================================
+#===============================================================================================================================================
+
+import matplotlib as mpl
+
+def plot_settings():
+    plt.style.use(['default'])
+    mpl.rcParams['xtick.labelsize'] = 12
+    mpl.rcParams['ytick.labelsize'] = 12
+    mpl.rcParams['axes.labelsize'] = 14
+    mpl.rcParams['axes.titlesize'] = 16
+    mpl.rcParams['legend.fontsize'] = 12
+    mpl.rcParams['font.size'] = 14  # global font size
+
+    mpl.rcParams['axes.grid'] = True
+    mpl.rcParams['axes.formatter.use_mathtext'] = True
+    mpl.rcParams['axes.formatter.limits'] = -2,3
+    mpl.rcParams['grid.linewidth'] = 0.4
+    mpl.rcParams['legend.fancybox'] = False
+    mpl.rcParams['legend.numpoints'] = 5
+    mpl.rcParams['legend.scatterpoints'] = 5
+    mpl.rcParams['legend.edgecolor'] = 'gray'
+    mpl.rcParams['patch.linewidth'] = 1
+
+    mpl.rcParams['legend.borderpad'] = 0.4
+    mpl.rcParams['legend.labelspacing'] = 0.5
+
+    mpl.rcParams['legend.handlelength'] = 1
+    mpl.rcParams['legend.handleheight'] = 0.6
+    mpl.rcParams['legend.handletextpad'] = 0.8
+    mpl.rcParams['legend.borderaxespad'] = 0.5
+    mpl.rcParams['legend.columnspacing'] = 2
+
+    mpl.rcParams['axes.edgecolor'] = 'gray'
+    mpl.rcParams['axes.linewidth'] = 0.8
