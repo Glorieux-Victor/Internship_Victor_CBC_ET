@@ -571,7 +571,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,label,x_time_l
     """
 
     if domain == 'time' :
-        fig_ts = plt.figure()
+        fig_ts = plt.figure(figsize = (8,4))
         ax_ts = fig_ts.gca()
     elif domain == 'freq' :
         fig_fs = plt.figure()
