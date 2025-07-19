@@ -627,7 +627,7 @@ def comparison_signals_params(model,dict_param, cbc_params,domain,label,x_time_l
         ax_ts.set_xlabel('Time [s]')
         ax_ts.set_ylabel('Strain')
         ax_ts.set_xlim(tc - x_time_lim['inf'],tc + x_time_lim['sup'])
-        ax_ts.legend()
+        #ax_ts.legend()
 
     elif domain == 'freq' :
         ax_fs.set_xlabel('Frequency [Hz]')
