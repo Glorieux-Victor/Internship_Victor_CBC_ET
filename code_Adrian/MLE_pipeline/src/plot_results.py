@@ -173,6 +173,19 @@ def gwpy_to_pycbc(Gwpy_TimeSeries):
         Pycbc_TimeSeries[ifo] = PycbcTimeSeries(val, delta_t=delta_t, epoch = t0)
     return Pycbc_TimeSeries
 
+def pycbc_to_gwpy_ifo(Pycbc_TimseSeries):
+    t0 = Pycbc_TimseSeries.start_time
+    Gwpy_TimeSeries = TimeSeries(data = Pycbc_TimseSeries,times=Pycbc_TimseSeries.get_sample_times(),t0=t0)
+    return Gwpy_TimeSeries
+
+def gwpy_to_pycbc_ifo(Gwpy_TimeSeries):
+    val = Gwpy_TimeSeries.value
+    delta_t = Gwpy_TimeSeries.dt.value
+    t0 = Gwpy_TimeSeries.t0.value
+    Pycbc_TimeSeries = PycbcTimeSeries(val, delta_t=delta_t, epoch = t0)
+
+    return Pycbc_TimeSeries
+
 
 def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = False,save_fig = False, infos = None):
 

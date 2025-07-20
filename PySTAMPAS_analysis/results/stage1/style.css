@@ -1,0 +1,261 @@
+body,html
+{
+    margin:0px;
+    padding:0px;
+    font-family:helvetica;
+}
+
+h1
+{
+    width:auto;
+    margin:20px auto;
+    color: #000;
+    text-align: center;
+    background-color: #FFF;
+    border-bottom: 3px solid black;
+}
+
+h2
+{
+    position:relative;
+    display:inline-block;
+    padding:0px 5px 2px 5px;
+    margin-left:0%;
+    border:1px black solid;
+    background-color:#FFF;
+    z-index:2;
+}
+
+
+h3
+{
+    color: #000000;
+    border-bottom: 1px solid black;
+    padding: 0.25em;
+
+}
+
+.box
+{
+    color: #000000;
+    border: 1px solid black;
+    padding: 0.25em;
+    padding-left:30px;
+}
+.boxtitle
+{
+    position:relative;
+    display:inline-block;
+    padding:2px 5px 2px 5px;
+    margin-left:0%;
+    border:1px black solid;
+    background-color:#FFF;
+    z-index:2;
+    font-weight:bold
+}
+
+tableloudest {
+    font-size:10
+}
+
+a {
+    color:#0044aa;
+    font-weight: bold;
+    text-decoration:none;
+}
+
+a:visited {
+    color: #0044aa;
+    font-weight: bold;
+    text-decoration: none;
+}
+a:hover {
+    color: red;
+    font-weight: bold;
+    text-decoration: underline;
+}
+a:focus {
+    color: #8844aa;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.ariane
+{
+    width:auto;
+    padding-left:20px;
+    font-size:20px;
+}
+
+
+/*
+ *--------------------------------------------------------------
+ * MAIN DIV STYLE STYLE
+ *--------------------------------------------------------------
+ *
+ */
+
+.info, .plots, .eff, .dic
+{
+    position:relative;
+    display:inline-block;
+    display:block;
+    width:80%;
+    
+    margin-top:-25px;
+    margin-left:7%;
+    z-index:1;
+    padding:5px 3px 5px 3px;
+    text-align:center;
+    border:1px black solid;
+}
+
+/*
+ *--------------------------------------------------------------
+ * INFO STYLE
+ *--------------------------------------------------------------
+ */
+
+.dic>table
+{
+}
+
+.dic>table th
+{
+    border:none;
+    background-color:#CCC;
+}
+
+
+
+/*
+ *--------------------------------------------------------------
+ * INFO STYLE
+ *--------------------------------------------------------------
+ */
+
+.info>table
+{
+    border-collapse:collapse;
+    font-size:18;
+}
+
+.info>table th,td
+{
+    text-align:left;
+    padding-right:20px;
+}
+
+.info>table .tableTitle
+{
+    text-align:left;
+    font-size:20;
+    background-color:#CCC;
+}
+
+
+/*
+ *--------------------------------------------------------------
+ * EFF STYLE
+ *--------------------------------------------------------------
+ */
+
+.eff>table
+{
+    border-collapse:collapse;
+    margin:0px auto;
+}
+
+.eff>table td,th
+{
+    padding-right:10px;
+    padding-left:10px;
+}
+
+
+.eff>table th
+{
+    text-align:center;
+    background-color:#CCC;
+}
+
+.eff>table td
+{
+    text-align:right;
+}
+
+.eff>table tr:hover td
+{
+    background-color:#099;
+}
+
+
+/*
+ *--------------------------------------------------------------
+ * PLOTS STYLE
+ *--------------------------------------------------------------
+ */
+
+.plots>table
+{
+    border: 2px solid #D1D0CE;
+    width:auto;
+    margin:15px auto;
+    background-color:#cccccc;
+    
+}
+
+.plots>table th
+{
+    text-align:left;
+    font-size:20px;
+    border-bottom:1px black solid;
+}
+
+.plots>table th div
+{
+    display:inline-block;
+}
+
+.plots>table th a
+{
+    padding:0px 3px 0px 3px;
+    
+}
+
+.plots>table td
+{
+    text-align:center;
+    padding:0px;
+}
+
+.plots>table img
+{
+    text-align:center;
+    width:100%;
+}
+
+
+/*
+ *--------------------------------------------------------------
+ * FOOTER STYLE
+ *--------------------------------------------------------------
+ */
+
+footer
+{
+    width:auto;
+    border-top:3px black solid;
+    text-align:center;
+    margin-top:20px;
+    margin-bottom:50px;
+    padding-top:10px;
+}
+
+footer div
+{
+    display:block;
+    width:80%;
+    margin:0px auto;
+    text-align:left;
+}
