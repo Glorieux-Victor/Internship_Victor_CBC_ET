@@ -102,15 +102,15 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
                     maximized_params['distance'].values[0], maximized_params['ra'].values[0], maximized_params['dec'].values[0],  maximized_params['polarization'].values[0], maximized_params['inclination'].values[0],
                     maximized_params['spin1z'].values[0],  maximized_params['spin2z'].values[0], maximized_params['coa_phase'].values[0]]
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12), sharex=True, gridspec_kw={'height_ratios': [3, 1]})
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 8), sharex=True, gridspec_kw={'height_ratios': [3, 1]})
 
     # Tracer les deux signaux dans le premier axe :
     ax1.plot(reconstructed_signal_tdomain[ifo].get_sample_times(),reconstructed_signal_tdomain[ifo],label= 'Reconstructed signal (' + ifo + ')', zorder = 2)
     if position == "Front" :
         if source == "MLE_pipeline" :
-            ax1.set_xlim(maximized_params['tc'] - 3, maximized_params['tc'] + 0.5)
+            ax1.set_xlim(maximized_params['tc'] - 1.5, maximized_params['tc'] + 0.1)
         else :
-            ax1.set_xlim(maximized_params['tc'].values[0] - 3, maximized_params['tc'].values[0] + 0.5)
+            ax1.set_xlim(maximized_params['tc'].values[0] - 1.5, maximized_params['tc'].values[0] + 0.1)
     elif position == "Back" :
         ax1.set_xlim(data[ifo].end_time - 10, data[ifo].end_time - 6)
 
@@ -265,7 +265,7 @@ def comparison_freq(opti_cut,reel_cut,residual,ifo,average_noise,noisePSD = Fals
 #======================================================================================================
 
 
-def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None, save_fig = False, infos = None, name = ''):
+def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None, save_fig = False,path_save = '', infos = None, name = ''):
     """
     Plot q-Transform of gwpy TimeSeries.
 
@@ -302,4 +302,4 @@ def qtrans_plot(tsgwpy,frange,qrange,fres=0.1,tres = 0.01,colorbar_limits = None
         if infos != None :
             plt.savefig(infos['path_folder'] + '/q_transform' + name)
         else :
-            plt.savefig('q_transform' + name)
+            plt.savefig(path_save + 'q_transform' + name)

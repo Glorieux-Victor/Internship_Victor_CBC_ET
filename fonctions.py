@@ -7,6 +7,7 @@ from IPython.display import clear_output
 import pandas as pd
 import numpy as np
 import copy
+import pickle
 from scipy.optimize import curve_fit
 import pycbc.psd.analytical as detector_psd
 from pycbc.detector import Detector
@@ -15,6 +16,10 @@ import sys
 from pycbc.types import timeseries as pycbcTimeSerie
 from plot_results import convert_signal, comparison_signals, comparison_freq, qtrans_plot, gwpy_to_pycbc, pycbc_to_gwpy
 from params_calculation import spinSz_from_sz_mass, spinAz_from_sz_mass, s1z_from_spinSz_spinAz, s2z_from_spinSz_spinAz
+
+sys.path.append('/home/victor-glorieux/Internship_Victor_CBC_ET/code_Adrian/MLE_pipeline/src')
+from get_data import read_MDC_data
+from likelihood import subtract_signal
 
 # =========================================
 #instruments_PSD, antenna_factors, comparison_signals_params, likelihood_visualisation, extract_best_SNR
@@ -425,7 +430,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
         for i in range(range_t) :
             if qtrans.value[i,:].max() > q_lim :
                 y_.append(freq_list[np.where(qtrans.value[i,:] == qtrans.value[i,:].max())[0][0]])
-                x_.append(time_list[i])
+                x_.append(time_list[i] + tres/2)
 
         x_scaled = [i - x_[0] for i in x_] #Rescale of the time values to ease the fit.
     
@@ -443,7 +448,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
     except RuntimeError: 
         print('Failed to fit the spectrogram. Test of another method ...')
 
-        x_scaled, x_, y_ = qtrans_plot(frange,qrange = (4,25),fres=0.01,tres=0.01,colorbar_limits = {'inf' : 22, 'sup' : None}, q_lim=22)
+        x_scaled, x_, y_ = qtrans_plot(frange,qrange = (4,25),fres=0.01,tres=0.01,colorbar_limits = {'inf' : 18, 'sup' : None}, q_lim=18)
 
         try :
             popt, pcov = curve_fit(function_fit, x_scaled, y_, p0 = init)
@@ -453,10 +458,21 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
             plt.scatter(x_,y_,label = 'courbe',s=4)
             plt.legend()
             if save_fig :
-                plt.savefig(path + 'fit_qtrans_error')
+                plt.savefig(path + 'fit_qtrans_error01')
+            
+            x_scaled, x_, y_ = qtrans_plot(frange,qrange = (4,30),fres=0.005,tres=0.001,colorbar_limits = {'inf' : 14, 'sup' : None}, q_lim=14)
 
-            y_fit = None
-            return result, x_, y_, y_fit
+            try :
+                popt, pcov = curve_fit(function_fit, x_scaled, y_, p0 = init)
+            except RuntimeError:
+                plt.figure()
+                plt.scatter(x_,y_,label = 'courbe',s=4)
+                plt.legend()
+                if save_fig :
+                    plt.savefig(path + 'fit_qtrans_error02')
+                
+                y_fit = None
+                return result, x_, y_, y_fit
 
     result = {"mchirp" : popt[0], "tc" : popt[1]+x_[0]}
 
@@ -506,7 +522,7 @@ def instruments_PSD(instruments_dict,ET_MDC=False):
 
     if ET_MDC :
         ET10km = pd.read_csv('../input/ET10km_columns.txt',sep = ' ',names=["frequencies", "A", "B", "C"])
-        plt.loglog(ET10km['frequencies'],ET10km['C'],label = 'ET (10km)')
+        plt.loglog(ET10km['frequencies'],ET10km['C'],label = 'ET (MDC)')
 
     plt.xlim(4,1000)
     plt.ylim(10e-51,10e-35)
@@ -806,76 +822,102 @@ def extract_best_SNR(SNR_lower_limit, source = 'local'):
     
     return dict_best_SNR
 
+
+
 #===============================================================================================================================================
-#============================================= PySTAMPAS utilities =============================================================================
+#===============================================================================================================================================
 #===============================================================================================================================================
 
-import subprocess
 
-def the_fonction(best_SNR_dict) :
-    #run all the minimizations and put t_start and t_end in lists.
-    t_start_list = []
-    t_end_list = []
-    t_start_minimization = []
-    t_end_minimization = []
-    for key, value in dict.items() :
-        subprocess.run([
-            "python", "/home/victor-glorieux/MLE-pipeline/Run/MLE_run.py",
-            "--get_parameters", str(True),
-            "--minimization", str(True),
-            "--index", str(value),
-            "--type", str(key[5:6])
-        ]) #add a return of t_start_minimization and _t_end_minimization.
-        t_start_minimization.append()
-        t_end_minimization.append()
-        #Find a way to get back the t_start and t_end of the miniization to be able to read the pickle
-        t_start_list.append()
-        t_end_list.append()
+
+def read_pickle_from_file(folder_output,pickle_file,study_type,infos,compare_sig = True, compare_freq=True, q_transform=True):
+
+    '''
+    info : dict {'t_start_signal' : ,'t_end_signal' : }
     
-    #Take the t_start and t_end of the MDC data and divide it in blocks of 500
-    t_start_MDC = 1000000000
-    ref_start_list = []
-    ref_end_list = []
+    '''
 
-    for t0,ind in enumerate(t_start_list) :
-        ref_start = (t_start_list - t_start_MDC)//500
-        ref_end = (t_end_list[ind] - t_start_MDC)//500
-        ref_start_list.append(ref_start)
-        ref_end_list.append(ref_end)
+    ifos = ['E1','E2','E3']
 
-    interval = [] #Contient True : signal sur un seul fichier, ou False : signal sur plusieurs fichiers.
-    init=[] #Contient le nom des fichiers
-    final=[]
+    path_folder = folder_output
 
-    def find_ref(ref,ref_sup,t0,tc):
-        for int_i,i in enumerate(cols) : 
-            for int_j,j in enumerate(ET[i]):
-                if int_j + int_i*len(ET[i]) == ref: #On se repère avec les indices.
-                    init.append(j[17:27])
-                if int_j + int_i*len(ET[i]) == ref_sup:
-                    final.append(j[17:27])
-                    #print(j[17:27])
-                if int_j + int_i*len(ET[i]) - 1  == ref:
-                    #print(j[17:27])
-                    if float(tc) < float(j[17:27]):
-                        interval.append(True)
-                        #print('Signal compris dans l\'intervale de temps.')
-                    else :
-                        interval.append(False)
-                        #print('Il faut prendre un plus grand intervale.')
+    with open(path_folder + '/' + pickle_file, 'rb') as f:
+        model= pickle.load(f)
+    print(' - Lecture du pickle : done')
 
-    # ref_list,t0_list,tc_list,ref_sup,params_list = temps_ref(indexes)
-    # for i in range(len(ref_list)):
-    #     if print_ ==True:
-    #         print('t0 :', t0_list[i])
-    #         print('tc :', tc_list[i])
-    #     find_ref(ref_list[i],ref_sup[i],t0_list[i],tc_list[i])
+    params = model.maximized_params
 
-    # t0_list = [float(t0_list[i]) for i in range(len(t0_list))]
-    # tc_list = [float(tc_list[i]) for i in range(len(tc_list))]
+    tc = params['tc']
 
+    #Lecture du signal complet du MDC avec read_MDC_data de get_data.py ==================================
+    original_tsd = read_MDC_data(infos['t_start_signal'], infos['t_end_signal'] + 1)
+    original_tsd = gwpy_to_pycbc(original_tsd)
+    #original_tsd = read_MDC_data(signal_reconstructed_time['E1'].start_time, signal_reconstructed_time['E1'].end_time)
+    print(' - Lecture des données complètes du MDC : done')
 
+    signal_reconstructed_freq, signal_reconstructed_time = model.reconstruct_signal()
+    for ifo in ifos :
+        #original_tsd[ifo] = original_tsd[ifo].to_pycbc()
+        t_end = signal_reconstructed_time[ifo].get_sample_times()[-1]
+        signal_reconstructed_time[ifo] = signal_reconstructed_time[ifo].cyclic_time_shift(t_end - tc - 1)
+    print(' - Conversion des données en séries temporelles : done')
+    
 
-#===============================================================================================================================================
-#===============================================================================================================================================
-#===============================================================================================================================================
+    signal_reconstructed_time_cut = {}
+    signal_reconstructed_time_freq = {}
+    original_tsd_cut = {}
+    original_tsd_freq = {}
+
+    for ifo in ifos :
+        if study_type == 3 :
+            signal_reconstructed_time_cut[ifo] = signal_reconstructed_time[ifo].time_slice(tc - 2,tc+0.2)
+            original_tsd_cut[ifo] = original_tsd[ifo].time_slice(tc - 2,tc+0.2)
+
+            original_tsd_freq[ifo] = original_tsd[ifo].time_slice(tc - 3 , tc+0.2)
+            signal_reconstructed_time_freq[ifo] = signal_reconstructed_time[ifo].time_slice(tc - 3 , tc+0.2)
+        
+        else :
+            signal_reconstructed_time_cut[ifo] = signal_reconstructed_time[ifo].time_slice(tc - 0.5, tc+0.05)
+            original_tsd_cut[ifo] = original_tsd[ifo].time_slice(tc - 0.5, tc+0.05)
+
+            original_tsd_freq[ifo] = original_tsd[ifo].time_slice(tc - 50, tc+0.1)
+            signal_reconstructed_time_freq[ifo] = signal_reconstructed_time[ifo].time_slice(tc - 50, tc+0.1)
+            
+    print(' - Découpage des données : done')
+
+    residual_time_cut = subtract_signal(original_tsd_cut, signal_reconstructed_time_cut)
+    residual_time_freq = subtract_signal(original_tsd_freq, signal_reconstructed_time_freq)
+    print(' - Calcul des résidus : done')
+
+    if compare_sig :
+
+        comparison_signals(params,signal_reconstructed_time_cut,original_tsd_cut,residual_time_cut,ifo = 'E1',position = "Front",source="MLE_pipeline",save_fig = True,infos=infos)
+        print(' - [PLOT] Comparaison signal : done')
+
+    if compare_freq :
+
+        average_noise = {'status' : True, 'ech' : 15}
+        if study_type == 3 :
+            original_tsd = read_MDC_data(signal_reconstructed_time[ifo].start_time, signal_reconstructed_time[ifo].end_time)
+            original_tsd = gwpy_to_pycbc(original_tsd)
+
+            residual_time = subtract_signal(original_tsd, signal_reconstructed_time)
+            comparison_freq(signal_reconstructed_time,original_tsd,residual_time,ifo = 'E1',noisePSD=True,average_noise=average_noise,save_fig = True,infos=infos)
+        else :
+            comparison_freq(signal_reconstructed_time_freq,original_tsd_freq,residual_time_freq,ifo = 'E1',noisePSD=True,average_noise=average_noise,save_fig = True,infos=infos)
+        print(' - [PLOT] Comparaison fréquence : done')
+
+    if q_transform :
+
+        tsgwpy_real = pycbc_to_gwpy(original_tsd_freq)
+        tsgwpy_res = pycbc_to_gwpy(residual_time_freq)
+        #colorbar_limits = {'inf' : 0, 'sup' :1500}
+        if study_type == 3 :
+            frange = (4, 100)
+            qrange = (12, 30)
+        else :
+            frange = (10, 250)
+            qrange = (30, 150)
+        qtrans_plot(tsgwpy_real['E1'],fres = 0.01,tres = 0.01,frange = frange,qrange = qrange, name = '_MDC', save_fig = True, infos = infos)
+        qtrans_plot(tsgwpy_res['E1'],tres = 0.01,frange = frange,colorbar_limits = {'inf' : 0, 'sup' :500},qrange = qrange,name = '_res', save_fig = True, infos = infos)
+        print(' - [PLOT] q-transforms : done')

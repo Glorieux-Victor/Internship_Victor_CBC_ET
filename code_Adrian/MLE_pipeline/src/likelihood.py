@@ -244,23 +244,15 @@ def subtract_signal(original_data, reconstructed_signal_tdomain):
     for ifo in ifos:
         tsd = original_data[ifo]
 
-        print('rr1')
-
         # Interpolate reconstructed signal with time stamps of the original data
         t1 = original_data[ifo].get_sample_times().data
         t2 = reconstructed_signal_tdomain[ifo].get_sample_times().data
-        
-        print('rr2')
 
         h1 = original_data[ifo].data
         h2 = reconstructed_signal_tdomain[ifo].data
-
-        print('rr3')
         
         h_of_t = interp1d(t2, h2, bounds_error=False, fill_value=0)
         h_new = h_of_t(t1)
-
-        print('rr4')
 
         residual = TimeSeries(h1 - h_new, times=t1)
         subtracted_signal_tdomain[ifo] = residual.to_pycbc()
