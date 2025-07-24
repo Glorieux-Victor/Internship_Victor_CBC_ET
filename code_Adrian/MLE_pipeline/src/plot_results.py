@@ -108,7 +108,7 @@ def comparison_signals(maximized_params, reconstructed_signal_tdomain, data, res
     ax1.plot(reconstructed_signal_tdomain[ifo].get_sample_times(),reconstructed_signal_tdomain[ifo],label= 'Reconstructed signal (' + ifo + ')', zorder = 2)
     if position == "Front" :
         if source == "MLE_pipeline" :
-            ax1.set_xlim(maximized_params['tc'] - 1.5, maximized_params['tc'] + 0.1)
+            ax1.set_xlim(maximized_params['tc'] - 0.1, maximized_params['tc'] + 0.025)
         else :
             ax1.set_xlim(maximized_params['tc'].values[0] - 1.5, maximized_params['tc'].values[0] + 0.1)
     elif position == "Back" :

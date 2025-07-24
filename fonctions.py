@@ -880,8 +880,8 @@ def read_pickle_from_file(folder_output,pickle_file,study_type,infos,compare_sig
             signal_reconstructed_time_cut[ifo] = signal_reconstructed_time[ifo].time_slice(tc - 0.5, tc+0.05)
             original_tsd_cut[ifo] = original_tsd[ifo].time_slice(tc - 0.5, tc+0.05)
 
-            original_tsd_freq[ifo] = original_tsd[ifo].time_slice(tc - 50, tc+0.1)
-            signal_reconstructed_time_freq[ifo] = signal_reconstructed_time[ifo].time_slice(tc - 50, tc+0.1)
+            original_tsd_freq[ifo] = original_tsd[ifo].time_slice(tc - 20, tc+0.1)
+            signal_reconstructed_time_freq[ifo] = signal_reconstructed_time[ifo].time_slice(tc - 20, tc+0.1)
             
     print(' - Découpage des données : done')
 
