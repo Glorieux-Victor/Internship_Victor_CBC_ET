@@ -370,7 +370,7 @@ def single_plot_spec_GW(path,channel,dossier_save,save,i,ind,type):
 #======================================================================================================
 
 def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = None,frange=(4, 150),qrange=(5, 50),
-                              fres=0.1, tres=0.1,show_fit=False, save_qtrans = False, save_fig = False):
+                              fres=0.1, tres=0.1,show_fit=False, save_qtrans = False, show_slices = False, save_fig = False):
 
     """
     Plot of the spectrogram of a signal to find the approximate chirpm and tc.
@@ -422,6 +422,41 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
         range_t = len(qtrans.times.value)
         range_f = len(qtrans.frequencies.value)
 
+        if show_slices : 
+            plt.figure()
+            print('cols : ',len(qtrans.value[0,:]))
+            print('rows : ',len(qtrans.value[:,0]))
+            x = np.arange(range_t/10, step=0.1)
+            for i in range(range_t) :
+                plt.plot(x,qtrans.value[:,i])
+            plt.ylabel("Normalized energy")
+            plt.xlabel("Time [seconds] from 1001620439.0")
+            plt.savefig('/home/victor/Internship_Victor_CBC_ET/images/step1_qfit.svg', format = 'svg')
+            
+            plt.figure()
+            for i in range(range_t) :
+                if qtrans.value[:,i].max() > q_lim :
+                    plt.plot(x,qtrans.value[:,i])
+            plt.xlabel("Time [seconds] cut from 1001620439.0")
+            plt.xlim(12,21.3)
+            plt.savefig('/home/victor/Internship_Victor_CBC_ET/images/step2_qfit.svg', format = 'svg')
+
+            plt.figure()
+            max = []
+            x_list = []
+            for i in range(range_t) :
+                if qtrans.value[:,i].max() > q_lim :
+                    index = np.where(qtrans.value[:,i] == qtrans.value[:,i].max())[0][0]
+                    max.append(qtrans.value[:,i].max())
+                    x_list.append(x[index])
+            plt.scatter(x_list,max,label = 'Maximums')
+            print(x_list)
+            print(max)
+            plt.legend()
+            plt.xlabel("Time [seconds] cut from 1001620439.0")
+            plt.savefig('/home/victor/Internship_Victor_CBC_ET/images/step3_qfit.svg', format = 'svg')
+
+
         plt.figure()
         y_ = []
         x_ = []
@@ -455,7 +490,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
         except RuntimeError: 
             result = {"mchirp" : 'ERROR', "tc" : 'ERROR'}
             plt.figure()
-            plt.scatter(x_,y_,label = 'courbe',s=4)
+            plt.scatter(x_,y_,label = 'Extracted points',s=4)
             plt.legend()
             if save_fig :
                 plt.savefig(path + 'fit_qtrans_error01')
@@ -466,7 +501,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
                 popt, pcov = curve_fit(function_fit, x_scaled, y_, p0 = init)
             except RuntimeError:
                 plt.figure()
-                plt.scatter(x_,y_,label = 'courbe',s=4)
+                plt.scatter(x_,y_,label = 'Extracted points',s=4)
                 plt.legend()
                 if save_fig :
                     plt.savefig(path + 'fit_qtrans_error02')
@@ -482,8 +517,8 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
         for i,x in enumerate(x_):
             y_fit.append(function_fit(x,result["mchirp"],result["tc"]))
         plt.figure()
-        plt.scatter(x_,y_,label = 'courbe',s=4)
-        plt.plot(x_,y_fit,label = 'fit',c='black')
+        plt.scatter(x_,y_,label = 'Extracted points',s=4)
+        plt.plot(x_,y_fit,label = 'Fit curve',c='black')
         plt.legend()
     
     result["mchirp"] = popt[0]/M
@@ -491,7 +526,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
     result["u_tc"] = np.sqrt(pcov[1,1])
 
     if save_fig :
-        plt.savefig(path + 'fit_qtrans')
+        plt.savefig(path + 'q_trans_fit')
     
 
     return result, x_, y_, y_fit
@@ -744,7 +779,7 @@ def likelihood_visualisation(model,true_params,params = 'all',fig_name = None,sa
         ax.plot(x_grid,y_grid,label = r"-log($\mathcal{L}$)")
 
         if data_x == 'mass1' :
-            ax.set_xlabel(r'M chirp',fontsize = 30)
+            ax.set_xlabel(r'$M_\text{chirp}$',fontsize = 30)
             ax.axvline(mchirp_true,color = 'red',label = 'True param')
         elif data_x == 'mass2' :
             ax.set_xlabel('q',fontsize = 30)
@@ -762,10 +797,10 @@ def likelihood_visualisation(model,true_params,params = 'all',fig_name = None,sa
         ax.tick_params(labelsize = 20)
         ax.legend(fontsize = 25)
     
-    fig_lik, axs = plt.subplots(nrows=4, ncols=4, figsize = (40,20))
+    fig_lik, axs = plt.subplots(nrows=3, ncols=4, figsize = (40,20))
 
-    axs_list = {'tc' : axs[0,0], 'mass1' : axs[0,1], 'mass2' : axs[0,2], 'distance'  : axs[0,3], 'ra'    : axs[1,0], 'dec' : axs[1,1], 'polarization' : axs[1,2], 'inclination' : axs[1,3], 'spin1z' : axs[2,0], 'spin2z'  : axs[2,1], 'coa_phase'  : axs[2,2], 'spinSz' : axs[2,3], 'spinAz' : axs[3,0]}
-    label_x = {'tc'  : r'$t_c$', 'mass1' : r'$m_1$', 'mass2' : r'$m_2$',  'distance' : r'distance', 'ra' : r'ra', 'dec'    : r'dec', 'polarization'   : r'polarization', 'inclination'  : r'inclination', 'spin1z'  : r'$\text{spin}_{1z}$', 'spin2z' : r'$\text{spin}_{2z}$', 'coa_phase' : r'phase coalescence', 'spinSz' : r'$\text{spin}_{Sz}$', 'spinAz' : r'$\text{spin}_{Az}$'}
+    axs_list = {'tc' : axs[0,0], 'mass1' : axs[0,1], 'mass2' : axs[0,2], 'distance'  : axs[0,3], 'ra'    : axs[1,0], 'dec' : axs[1,1], 'polarization' : axs[1,2], 'inclination' : axs[1,3], 'spin1z' : axs[2,0], 'spin2z'  : axs[2,1], 'coa_phase'  : axs[2,2], 'spinSz' : axs[2,0], 'spinAz' : axs[2,1]}
+    label_x = {'tc'  : r'$t_c$', 'mass1' : r'$m_1$', 'mass2' : r'$m_2$',  'distance' : r'$r$', 'ra' : r'$\alpha$', 'dec'    : r'$\delta$', 'polarization'   : r'$\psi$', 'inclination'  : r'$\iota$', 'spin1z'  : r'$\text{spin}_{1z}$', 'spin2z' : r'$\text{spin}_{2z}$', 'coa_phase' : r'$\phi_c$', 'spinSz' : r'$\text{spin}_{Sz}$', 'spinAz' : r'$\text{spin}_{Az}$'}
     data_x = ['tc',   'mass1',    'mass2',    'distance',    'ra',       'dec',      'polarization', 'inclination', 'spin1z',   'spin2z', 'coa_phase', 'spinSz', 'spinAz']
     param_min = {'tc' : true_params['tc'] - 0.5,'mass1' :   mchirp_true - 2,'mass2' :   0.2,'distance'  :     true_params['distance'] - 200,'ra' :        0,'dec' :   -np.pi/2,'polarization' :        0,'inclination' :       0,'spin1z' :    -1,'spin2z' :   -1,'coa_phase' : 0, 'spinSz' : -0.8, 'spinAz' : -0.8}
     param_max = {'tc' : true_params['tc'] + 0.5,'mass1' :  mchirp_true + 2,'mass2' :      3,'distance'  :   true_params['distance'] + 200,'ra' :  2*np.pi,'dec' :    np.pi/2,'polarization' :  2*np.pi,'inclination' :   np.pi,'spin1z' :     1,'spin2z' :    1,'coa_phase' : 2*np.pi, 'spinSz' : 0.8, 'spinAz' : 0.8}
