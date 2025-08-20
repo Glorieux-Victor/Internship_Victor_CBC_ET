@@ -510,7 +510,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
                 return result, x_, y_, y_fit
 
     result = {"mchirp" : popt[0], "tc" : popt[1]+x_[0]}
-
+    print('cov :',pcov)
 
     if show_fit :
         y_fit = []
