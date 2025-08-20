@@ -427,14 +427,14 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
             print('cols : ',len(qtrans.value[0,:]))
             print('rows : ',len(qtrans.value[:,0]))
             x = np.arange(range_t/10, step=0.1)
-            for i in range(range_t) :
+            for i in range(range_f) :
                 plt.plot(x,qtrans.value[:,i])
             plt.ylabel("Normalized energy")
             plt.xlabel("Time [seconds] from 1001620439.0")
             plt.savefig('/home/victor/Internship_Victor_CBC_ET/images/step1_qfit.svg', format = 'svg')
             
             plt.figure()
-            for i in range(range_t) :
+            for i in range(range_f) :
                 if qtrans.value[:,i].max() > q_lim :
                     plt.plot(x,qtrans.value[:,i])
             plt.xlabel("Time [seconds] cut from 1001620439.0")
@@ -444,7 +444,7 @@ def extract_mchirp_tc_spectro(tsgwpy_reel,ifo,q_lim,path,init,colorbar_limits = 
             plt.figure()
             max = []
             x_list = []
-            for i in range(range_t) :
+            for i in range(range_f) :
                 if qtrans.value[:,i].max() > q_lim :
                     index = np.where(qtrans.value[:,i] == qtrans.value[:,i].max())[0][0]
                     max.append(qtrans.value[:,i].max())
